@@ -104,4 +104,58 @@ Choose NEW, SHARED, or CONFLICTING using the definitions above.
 
 - For SHARED claims, record the matching claim or supporting sentence from Article 1.
 - For CONFLICTING claims, record the contradicting claim or sentence from Article 1.
-- For NEW claims, leave the reference evidence field blank
+- For NEW claims, leave the reference evidence field blank or enter `N/A`.
+
+**Step 6: Record uncertainty**
+
+If a claim is difficult to classify, record the reason in the Notes column. Do not change the label based on another annotator's decision.
+
+## 6. Annotation Spreadsheet Format
+
+Each annotation should include:
+
+| Column | Description |
+|---|---|
+| Event ID | Identifier of the DiverseSumm event |
+| Reference Article ID | Article 1 |
+| Candidate Article ID | Article being annotated |
+| Claim ID | Unique identifier for the candidate claim |
+| Candidate Claim | Atomic factual statement |
+| Label | NEW / SHARED / CONFLICTING |
+| Reference Evidence | Matching or contradicting claim from Article 1 |
+| Notes | Explanation of uncertainty or ambiguity |
+| Annotator ID | Team member identifier |
+
+## 7. Team Annotation Rules
+
+- All annotators must use the same reference article for each event.
+- During the pilot, all annotators should independently label the **same set of candidate claims**.
+- Do not discuss individual labels before completing the independent annotation.
+- Do not look at another annotator's labels before submitting your own.
+- Use only the reference article to determine whether a claim is NEW, SHARED, or CONFLICTING.
+- Do not use external sources or personal knowledge to decide labels.
+- Preserve uncertainty in the Notes column.
+
+## 8. Inter-Annotator Agreement
+
+After all team members complete their independent annotations:
+
+1. Combine the individual annotation files.
+2. Compare labels assigned to the same claim IDs.
+3. Calculate inter-annotator agreement.
+4. Discuss disagreements and clarify ambiguous guidelines.
+5. Create an adjudicated annotation file containing the final agreed labels.
+
+The final annotations will be stored in `annotations/adjudicated.csv`.
+
+## 9. Important Considerations
+
+- **Missing information is not conflicting information.** If the reference does not mention a fact, label it NEW.
+- **Paraphrases can be SHARED.** Exact wording is not required.
+- **The subject matters.** If Trump criticized a prosecutor in the reference, that does not mean a candidate claim saying DeSantis criticized the prosecutor is SHARED.
+- **Keep claims atomic.** If a sentence contains multiple factual assertions, split it into separate claims.
+- **Avoid unsupported assumptions.** Annotate only what the articles actually state.
+
+---
+
+*These guidelines are preliminary and may be updated after the initial annotation pilot and disagreement analysis.*
