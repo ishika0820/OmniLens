@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>OmniLens — News Claim Analysis</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont,
+                   "Segoe UI", sans-serif;
+      background: #f7f8fa;
+      color: #172033;
+    }
+
+    .container {
+      max-width: 950px;
+      margin: 60px auto;
+      padding: 0 24px;
+    }
+
+    h1 {
+      font-size: 36px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle { color: #667085; }
+
+    .search {
+      display: flex;
+      gap: 12px;
+      margin: 30px 0;
+    }
+
+    input {
+      flex: 1;
+      padding: 15px;
+      border: 1px solid #d0d5dd;
+      border-radius: 8px;
+      font-size: 15px;
+      min-width: 0;
+    }
+
+    button {
+      background: #172033;
+      color: white;
+      border: 0;
+      padding: 14px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: wait;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e4e7ec;
+      border-radius: 12px;
+      padding: 22px;
+      margin: 16px 0;
+    }
+
+    .muted { color: #667085; }
+    .claim { padding: 12px 0; border-bottom: 1px solid #eee; }
+    .claim:last-child { border-bottom: 0; }
+    .hidden { display: none; }
+    a { color: #2454a6; overflow-wrap: anywhere; }
+
+    @media (max-width: 600px) {
+      .search { flex-direction: column; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>OmniLens</h1>
+
+    <p class="subtitle">
+      Discover related news coverage and extract factual claims.
+    </p>
+
+    <form id="form" class="search">
+      <input
+        id="url"
+        type="url"
+        placeholder="Paste a news article URL..."
+        required
+      >
+
+      <button id="analyze" type="submit">
+        Analyze Article
+      </button>
+    </form>
+
+    <p id="status" class="muted"></p>
+
+    <div id="results" class="hidden">
+      <div class="card">
+        <h2>Analysis Summary</h2>
+        <div id="summary"></div>
+        <button id="download" type="button">
+          Download JSON
+        </button>
+      </div>
+
+      <div id="articles"></div>
+    </div>
+  </div>
+
+  <script>
+    let analysisData = null;
+
+    const form = document.getElementById("form");
+    const status = document.getElementById("status");
+    const results = document.getElementById("results");
+    const articles = document.getElementById("articles");
+    const button = document.getElementById("analyze");
+
+    function element(tag, text, className = "") {
+      const node = document.createElement(tag);
+      node.textContent = text ?? "";
+      if (className) node.className = className;
+      return node;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      button.disabled = true;
+      results.classList.add("hidden");
+      status.textContent =
+        "Finding related articles and extracting claims. This may take a few minutes.";
+
+      try {
+        const response = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: document.getElementById("url").value,
+            max_articles: 5
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            typeof data.detail === "string"
+              ? data.detail
+              : "Analysis failed."
+          );
+        }
+
+        analysisData = data;
+
+        const summary = document.getElementById("summary");
+        summary.replaceChildren(
+          element("p", "Reference: " + data.reference_article.title),
+          element("p", "Related articles: " + data.summary.articles_found),
+          element("p", "Extracted claims: " + data.summary.total_claims)
+        );
+
+        articles.replaceChildren();
+
+        data.candidate_articles.forEach((article) => {
+          const card = element("section", "", "card");
+          card.appendChild(element("h3", article.title));
+
+          const link = element("a", article.publisher || article.url);
+          link.href = article.url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          card.appendChild(link);
+
+          card.appendChild(
+            element("p", article.claim_count + " claims", "muted")
+          );
+
+          if (article.extraction_status !== "success") {
+            card.appendChild(
+              element("p", "Claim extraction failed.", "muted")
+            );
+          }
+
+          article.claims.forEach((claim) => {
+            card.appendChild(
+              element(
+                "div",
+                claim.claim_id + " — " + claim.text,
+                "claim"
+              )
+            );
+          });
+
+          articles.appendChild(card);
+        });
+
+        results.classList.remove("hidden");
+        status.textContent = "Analysis complete.";
+
+      } catch (error) {
+        status.textContent = "Error: " + error.message;
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById("download").addEventListener(
+      "click",
+      () => {
+        if (!analysisData) return;
+
+        const blob = new Blob(
+          [JSON.stringify(analysisData, null, 2)],
+          { type: "application/json" }
+        );
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+
+        link.href = url;
+        link.download = "omnilens_claims.json";
+        link.click();
+
+        URL.revokeObjectURL(url);
+      }
+    );
+  </script>
+</body>
+</html>

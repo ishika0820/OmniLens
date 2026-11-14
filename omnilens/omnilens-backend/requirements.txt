@@ -1,0 +1,31 @@
+# News discovery and article extraction
+eventregistry
+trafilatura
+requests
+python-dotenv
+
+# FENICE claim extraction
+torch
+transformers
+sentencepiece
+protobuf
+nltk
+sentence-transformers
+accelerate
+safetensors
+
+# Data processing
+numpy
+pandas
+
+# Claude claim annotation
+anthropic
+
+# Backend API
+fastapi
+uvicorn[standard]
+pydantic
+
+# Testing
+pytest
+httpx
