@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OmniLens — Reference Article</title>
+<link rel="stylesheet" href="omnilens.css" />
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="brand">OmniLens</div>
+    <div class="progress" aria-label="Workflow progress">
+      <span class="progress-dot active" data-progress="1"></span>
+      <span class="progress-dot" data-progress="2"></span>
+      <span class="progress-dot" data-progress="3"></span>
+      <span class="progress-dot" data-progress="4"></span>
+    </div>
+  </header>
+  <main>
+<!-- Screen 1 -->
+    <section class="screen active" id="screen1">
+      <div class="narrow">
+        <div class="step">Stage 1 of 4 · Reference article</div>
+
+        <h1>Compare how an event is reported.</h1>
+
+        <p class="intro">
+          Begin with one reference article. OmniLens will compare it with
+          reporting from other news sources.
+        </p>
+
+        <div class="tabs">
+          <button class="tab active" type="button" data-tab="url">
+            Paste article URL
+          </button>
+          <button class="tab" type="button" data-tab="text">
+            Paste article text
+          </button>
+        </div>
+
+        <div class="input-panel active" id="urlPanel">
+          <label class="field-label" for="articleUrl">Article URL</label>
+          <input
+            id="articleUrl"
+            type="url"
+            placeholder="https://example.com/news/article"
+          />
+          <div class="help">
+            Enter the full URL of the article you want to use as the reference.
+          </div>
+        </div>
+
+        <div class="input-panel" id="textPanel">
+          <label class="field-label" for="articleText">Article text</label>
+          <textarea
+            id="articleText"
+            placeholder="Paste the complete article text here..."
+          ></textarea>
+          <div class="help">
+            Include the article title and full body text when possible.
+          </div>
+        </div>
+
+        <button class="primary full-action" id="analyzeButton" type="button" disabled>
+          Analyze article
+        </button>
+      </div>
+    </section>
+
+    <!-- Screen 2 -->
+    <section class="screen" id="screen2">
+      <div class="narrow">
+        <div class="step">Stage 1 of 4 · Confirm article</div>
+
+        <h1>Is this the correct article?</h1>
+
+        <p class="intro">
+          Review the extracted information before finding related coverage.
+        </p>
+
+        <article class="article-preview">
+          <div class="preview-header">
+            <div class="publisher" id="previewPublisher">The Daily Journal</div>
+
+            <h2 class="preview-title" id="previewTitle">
+              Federal officials announce new measures following regional infrastructure disruptions
+            </h2>
+
+            <div class="preview-meta">
+              <span>November 12, 2026</span>
+              <span id="wordCount">842 words</span>
+            </div>
+          </div>
+
+          <div class="preview-body">
+            <div class="fade-text">
+              <p id="previewText">
+                Federal officials announced a new set of measures on Wednesday
+                following widespread infrastructure disruptions across the region.
+                The response includes additional emergency personnel, temporary
+                service centers and a review of existing preparedness procedures.
+                Local authorities said restoration efforts are continuing and
+                residents will receive further updates as work progresses.
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <div class="actions">
+          <button class="secondary" id="changeArticleButton" type="button">
+            Change article
+          </button>
+
+          <button class="primary" id="confirmArticleButton" type="button">
+            This is correct
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <div class="loading-label" id="loadingLabel">Working…</div>
+  </div>
+</div>
+<script>
+(function inputApp() {
+  const screens = {
+    1: document.getElementById('screen1'),
+    2: document.getElementById('screen2')
+  };
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const loadingLabel = document.getElementById('loadingLabel');
+  const tabs = [...document.querySelectorAll('.tab')];
+  const urlPanel = document.getElementById('urlPanel');
+  const textPanel = document.getElementById('textPanel');
+  const articleUrl = document.getElementById('articleUrl');
+  const articleText = document.getElementById('articleText');
+  const analyzeButton = document.getElementById('analyzeButton');
+  let activeInputMethod = 'url';
+
+  function showScreen(number) {
+    Object.values(screens).forEach(screen => screen.classList.remove('active'));
+    screens[number].classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showLoading(message, callback) {
+    loadingLabel.textContent = message;
+    loadingOverlay.classList.add('active');
+    setTimeout(() => {
+      loadingOverlay.classList.remove('active');
+      callback();
+    }, 700);
+  }
+
+  function updateAnalyzeButton() {
+    const hasUrl = articleUrl.value.trim().length > 7;
+    const hasText = articleText.value.trim().length > 40;
+    analyzeButton.disabled = activeInputMethod === 'url' ? !hasUrl : !hasText;
+  }
+
+  function setMethod(method) {
+    activeInputMethod = method;
+    tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.tab === method));
+    urlPanel.classList.toggle('active', method === 'url');
+    textPanel.classList.toggle('active', method === 'text');
+    updateAnalyzeButton();
+  }
+
+  function loadReference(reference) {
+    if (!reference) return;
+    document.getElementById('previewTitle').textContent = reference.title;
+    document.getElementById('previewText').textContent = reference.text;
+    document.getElementById('previewPublisher').textContent = reference.publisher || 'The Daily Journal';
+    document.getElementById('wordCount').textContent = `${reference.wordCount || reference.text.split(/\s+/).length} words`;
+    articleUrl.value = reference.url || '';
+    articleText.value = reference.inputText || '';
+  }
+
+  tabs.forEach(tab => tab.addEventListener('click', () => setMethod(tab.dataset.tab)));
+  articleUrl.addEventListener('input', updateAnalyzeButton);
+  articleText.addEventListener('input', updateAnalyzeButton);
+
+  analyzeButton.addEventListener('click', () => {
+    if (activeInputMethod === 'text' && articleText.value.trim()) {
+      const cleanText = articleText.value.trim();
+      const firstLine = cleanText.split('\n')[0].trim();
+      document.getElementById('previewText').textContent = cleanText;
+      document.getElementById('wordCount').textContent = `${cleanText.split(/\s+/).length} words`;
+      if (firstLine.length > 15 && firstLine.length < 150) {
+        document.getElementById('previewTitle').textContent = firstLine;
+      }
+    }
+    showLoading('Extracting article…', () => showScreen(2));
+  });
+
+  document.getElementById('changeArticleButton').addEventListener('click', () => showScreen(1));
+
+  document.getElementById('confirmArticleButton').addEventListener('click', () => {
+    const text = document.getElementById('previewText').textContent.trim();
+    const reference = {
+      title: document.getElementById('previewTitle').textContent.trim(),
+      publisher: document.getElementById('previewPublisher').textContent.trim(),
+      date: 'November 12, 2026',
+      wordCount: text.split(/\s+/).length,
+      text,
+      url: articleUrl.value.trim(),
+      inputText: articleText.value.trim(),
+      inputMethod: activeInputMethod
+    };
+    sessionStorage.setItem('omnilensReference', JSON.stringify(reference));
+    showLoading('Finding related articles…', () => { window.location.href = 'articles.html'; });
+  });
+
+  const saved = JSON.parse(sessionStorage.getItem('omnilensReference') || 'null');
+  if (saved) loadReference(saved);
+  if (new URLSearchParams(window.location.search).get('confirm') === '1' && saved) showScreen(2);
+  updateAnalyzeButton();
+})();
+</script>
+</body>
+</html>

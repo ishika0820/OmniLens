@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OmniLens — Results</title>
+<link rel="stylesheet" href="omnilens.css" />
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="brand">OmniLens</div>
+    <div class="progress" aria-label="Workflow progress">
+      <span class="progress-dot complete" data-progress="1"></span>
+      <span class="progress-dot complete" data-progress="2"></span>
+      <span class="progress-dot complete" data-progress="3"></span>
+      <span class="progress-dot active" data-progress="4"></span>
+    </div>
+  </header>
+  <main>
+<!-- Screen 6: Claim explorer -->
+    <section class="screen active" id="screen6">
+      <div class="step">Stage 4 of 4 · Claim explorer</div>
+
+      <h1>Review the claims.</h1>
+
+      <p class="intro">
+        Each label describes how a candidate claim relates to the selected
+        reference article. Select any claim to inspect its evidence.
+      </p>
+
+      <div class="result-tabs" role="tablist" aria-label="Claim relationship">
+        <button class="result-tab active" type="button" data-result-label="New">New · 2</button>
+        <button class="result-tab" type="button" data-result-label="Conflicting">Conflicting · 1</button>
+        <button class="result-tab" type="button" data-result-label="Shared">Shared · 1</button>
+      </div>
+
+      <div class="claim-list" id="claimList"></div>
+
+      <div class="results-footer">
+        <button class="secondary" id="backToAnalysisButton" type="button">Back to analysis</button>
+        <button class="primary" id="goToExportButton" type="button">Export results</button>
+      </div>
+    </section>
+
+    <!-- Screen 7: Detailed evidence -->
+    <section class="screen" id="screen7">
+      <div class="step">Stage 4 of 4 · Detailed evidence</div>
+
+      <h1>Inspect the evidence.</h1>
+
+      <p class="intro" id="evidenceRelationship">
+        Conflicting with the reference
+      </p>
+
+      <section class="analysis-summary">
+        <div class="analysis-summary-label">Extracted atomic claim</div>
+        <div class="analysis-summary-text" id="atomicClaim"></div>
+      </section>
+
+      <div class="evidence-grid">
+        <article class="evidence-block">
+          <div class="evidence-label">Candidate source</div>
+          <p class="evidence-claim" id="candidateClaim"></p>
+          <p class="evidence-passage" id="candidatePassage"></p>
+          <div class="claim-source" id="candidateMetadata"></div>
+          <button class="source-link" type="button" id="candidateSourceLink">Open candidate article</button>
+        </article>
+
+        <article class="evidence-block">
+          <div class="evidence-label">Reference source</div>
+          <p class="evidence-claim" id="referenceClaim"></p>
+          <p class="evidence-passage" id="referencePassage"></p>
+          <div class="claim-source" id="referenceMetadata"></div>
+          <button class="source-link" type="button" id="referenceSourceLink">Open reference article</button>
+        </article>
+      </div>
+
+      <details class="model-details">
+        <summary>Model details</summary>
+        <div id="probabilityRows"></div>
+      </details>
+
+      <div class="flag-message" id="flagMessage" role="status"></div>
+
+      <div class="results-footer">
+        <button class="secondary" id="backToClaimsButton" type="button">Back to claims</button>
+        <button class="secondary" id="flagResultButton" type="button">Flag incorrect result</button>
+        <button class="primary" id="copyClaimButton" type="button">Copy source-linked claim</button>
+      </div>
+    </section>
+
+    <!-- Screen 8: Export and restart -->
+    <section class="screen" id="screen8">
+      <div class="narrow">
+        <div class="step">Stage 4 of 4 · Export</div>
+
+        <h1>Take the results with you.</h1>
+
+        <p class="intro">
+          Download the comparison as a CSV or begin another analysis.
+        </p>
+
+        <div class="export-options">
+          <article class="export-option">
+            <div>
+              <div class="export-title">New and conflicting claims</div>
+              <p class="export-copy">Export the claims that add information or conflict with the reference.</p>
+            </div>
+            <button class="primary" id="exportPriorityButton" type="button">Download CSV</button>
+          </article>
+
+          <article class="export-option">
+            <div>
+              <div class="export-title">All classifications</div>
+              <p class="export-copy">Export new, conflicting and shared claims with evidence and confidence.</p>
+            </div>
+            <button class="secondary" id="exportAllButton" type="button">Download CSV</button>
+          </article>
+        </div>
+
+        <div class="export-fields">
+          event_id · reference_article · candidate_article · candidate_source · claim_text · predicted_label · confidence · candidate_evidence · reference_evidence · source_url
+        </div>
+
+        <div class="results-footer">
+          <button class="secondary" id="backToResultsButton" type="button">Back to results</button>
+          <button class="primary" id="restartButton" type="button">Start another comparison</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+(function resultsAppShell() {
+  const screens = {
+    6: document.getElementById('screen6'),
+    7: document.getElementById('screen7'),
+    8: document.getElementById('screen8')
+  };
+  window.showScreen = function(number) {
+    Object.values(screens).forEach(screen => screen.classList.remove('active'));
+    screens[number].classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+})();
+  const reference = JSON.parse(sessionStorage.getItem('omnilensReference') || '{}');
+  const claimResults = [
+    {
+      id: "claim-001",
+      label: "New",
+      claim: "Three temporary service centers will remain open through Friday.",
+      candidateArticle: "What residents should know about the ongoing service disruptions",
+      candidateSource: "Associated Press",
+      candidateDate: "November 12, 2026",
+      candidatePassage: "Officials said three temporary service centers will remain open through Friday to help residents access essential support.",
+      referenceClaim: "No sufficiently matching information was found in the reference article.",
+      referencePassage: "The reference article discusses temporary service centers but does not provide a matching number or closing date.",
+      confidence: 0.91,
+      probabilities: { Shared: 0.06, New: 0.91, Conflicting: 0.03 },
+      sourceUrl: "https://example.com/ap-service-centers"
+    },
+    {
+      id: "claim-002",
+      label: "New",
+      claim: "The investigation will include an independent engineering review.",
+      candidateArticle: "Communities adapt while officials investigate disruption causes",
+      candidateSource: "The Guardian",
+      candidateDate: "November 10, 2026",
+      candidatePassage: "Regional leaders confirmed that an independent engineering review will form part of the investigation into the disruption.",
+      referenceClaim: "No sufficiently matching information was found in the reference article.",
+      referencePassage: "The reference mentions a review of preparedness procedures but does not identify an independent engineering review.",
+      confidence: 0.86,
+      probabilities: { Shared: 0.09, New: 0.86, Conflicting: 0.05 },
+      sourceUrl: "https://example.com/guardian-engineering-review"
+    },
+    {
+      id: "claim-003",
+      label: "Conflicting",
+      claim: "Full service is expected to return by Thursday evening.",
+      candidateArticle: "Officials provide updated timeline for restoring regional services",
+      candidateSource: "Reuters",
+      candidateDate: "November 12, 2026",
+      candidatePassage: "The regional authority expects full service to return by Thursday evening, according to its latest operational update.",
+      referenceClaim: "Full restoration is not expected before Saturday morning.",
+      referencePassage: "Officials cautioned that full restoration is not expected before Saturday morning as crews continue repairs.",
+      confidence: 0.94,
+      probabilities: { Shared: 0.02, New: 0.04, Conflicting: 0.94 },
+      sourceUrl: "https://example.com/reuters-restoration-timeline"
+    },
+    {
+      id: "claim-004",
+      label: "Shared",
+      claim: "Additional emergency personnel were deployed to the region.",
+      candidateArticle: "Local agencies respond as infrastructure problems continue",
+      candidateSource: "BBC News",
+      candidateDate: "November 11, 2026",
+      candidatePassage: "Additional emergency personnel have been deployed across the affected region to support the local response.",
+      referenceClaim: "Additional emergency personnel were sent to assist local authorities.",
+      referencePassage: "The response includes additional emergency personnel working alongside local authorities.",
+      confidence: 0.96,
+      probabilities: { Shared: 0.96, New: 0.02, Conflicting: 0.02 },
+      sourceUrl: "https://example.com/bbc-emergency-response"
+    }
+  ];
+
+  const claimList = document.getElementById("claimList");
+  const resultTabs = [...document.querySelectorAll(".result-tab")];
+  let activeResultLabel = "New";
+  let selectedClaim = claimResults[0];
+
+  function relationshipText(label) {
+    return label === "New"
+      ? "New compared with the reference"
+      : label === "Conflicting"
+        ? "Conflicting with the reference"
+        : "Shared with the reference";
+  }
+
+  function renderClaims() {
+    const visibleClaims = claimResults.filter(result => result.label === activeResultLabel);
+    claimList.innerHTML = "";
+
+    visibleClaims.forEach(result => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = `claim-card claim-${result.label.toLowerCase()}`;
+      card.innerHTML = `
+        <span class="claim-topline">
+          <span class="claim-label">${relationshipText(result.label)}</span>
+          <span class="claim-confidence">${Math.round(result.confidence * 100)}% confidence</span>
+        </span>
+        <span class="claim-text">${result.claim}</span>
+        <span class="claim-source">${result.candidateArticle} · ${result.candidateSource}</span>
+        <span class="claim-note">${result.label === "New" ? "No sufficiently matching information was found in the reference article." : result.label === "Conflicting" ? `Reference statement: “${result.referenceClaim}”` : `Matching reference passage: “${result.referencePassage}”`}</span>
+      `;
+      card.addEventListener("click", () => openEvidence(result));
+      claimList.appendChild(card);
+    });
+  }
+
+  resultTabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      activeResultLabel = tab.dataset.resultLabel;
+      resultTabs.forEach(item => item.classList.toggle("active", item === tab));
+      renderClaims();
+    });
+  });
+
+  function openEvidence(result) {
+    selectedClaim = result;
+    document.getElementById("screen7").dataset.relationship = result.label;
+    document.getElementById("flagResultButton").disabled = false;
+    document.getElementById("flagResultButton").textContent = "Flag incorrect result";
+    document.getElementById("evidenceRelationship").textContent = relationshipText(result.label);
+    document.getElementById("atomicClaim").textContent = result.claim;
+    document.getElementById("candidateClaim").textContent = result.claim;
+    document.getElementById("candidatePassage").textContent = `“${result.candidatePassage}”`;
+    document.getElementById("candidateMetadata").textContent = `${result.candidateArticle} · ${result.candidateSource} · ${result.candidateDate}`;
+    document.getElementById("referenceClaim").textContent = result.referenceClaim;
+    document.getElementById("referencePassage").textContent = `“${result.referencePassage}”`;
+    document.getElementById("referenceMetadata").textContent = `${(reference.title || "Reference article")} · The Daily Journal · November 12, 2026`;
+    document.getElementById("flagMessage").textContent = "";
+
+    const rows = document.getElementById("probabilityRows");
+    rows.innerHTML = "";
+    Object.entries(result.probabilities).forEach(([label, probability]) => {
+      const row = document.createElement("div");
+      row.className = "probability-row";
+      row.innerHTML = `
+        <span>${label}</span>
+        <span class="probability-track"><span class="probability-fill probability-${label.toLowerCase()}" style="width:${probability * 100}%"></span></span>
+        <span>${Math.round(probability * 100)}%</span>
+      `;
+      rows.appendChild(row);
+    });
+
+    showScreen(7);
+  }
+
+  document.getElementById("backToAnalysisButton").addEventListener("click", () => { window.location.href = "analysis.html"; });
+  document.getElementById("goToExportButton").addEventListener("click", () => showScreen(8));
+  document.getElementById("backToClaimsButton").addEventListener("click", () => showScreen(6));
+  document.getElementById("backToResultsButton").addEventListener("click", () => showScreen(6));
+
+  document.getElementById("candidateSourceLink").addEventListener("click", () => {
+    window.open(selectedClaim.sourceUrl, "_blank", "noopener");
+  });
+
+  document.getElementById("referenceSourceLink").addEventListener("click", () => {
+    const url = reference.url || "https://example.com/reference-article";
+    window.open(url, "_blank", "noopener");
+  });
+
+  document.getElementById("flagResultButton").addEventListener("click", event => {
+    event.currentTarget.disabled = true;
+    event.currentTarget.textContent = "Flagged";
+    document.getElementById("flagMessage").textContent = "This result has been marked for review.";
+  });
+
+  document.getElementById("copyClaimButton").addEventListener("click", async event => {
+    const copyText = `${selectedClaim.claim}\n${relationshipText(selectedClaim.label)}\nSource: ${selectedClaim.candidateArticle} — ${selectedClaim.candidateSource}\n${selectedClaim.sourceUrl}`;
+    try {
+      await navigator.clipboard.writeText(copyText);
+      event.currentTarget.textContent = "Copied";
+      setTimeout(() => { event.currentTarget.textContent = "Copy source-linked claim"; }, 1400);
+    } catch (error) {
+      document.getElementById("flagMessage").textContent = "Copy is unavailable in this preview. Select and copy the claim manually.";
+    }
+  });
+
+  function csvCell(value) {
+    return `"${String(value ?? "").replace(/"/g, '""')}"`;
+  }
+
+  function downloadClaims(results, filename) {
+    const headers = [
+      "event_id", "reference_article", "candidate_article", "candidate_source",
+      "claim_text", "predicted_label", "confidence", "candidate_evidence",
+      "reference_evidence", "source_url"
+    ];
+    const referenceArticle = document.getElementById("referenceTitle").textContent.trim();
+    const rows = results.map(result => [
+      "omnilens-demo-001", referenceArticle, result.candidateArticle,
+      result.candidateSource, result.claim, result.label, result.confidence,
+      result.candidatePassage, result.referencePassage, result.sourceUrl
+    ]);
+    const csv = [headers, ...rows].map(row => row.map(csvCell).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+  }
+
+  document.getElementById("exportPriorityButton").addEventListener("click", () => {
+    downloadClaims(
+      claimResults.filter(result => result.label !== "Shared"),
+      "omnilens_new_and_conflicting_claims.csv"
+    );
+  });
+
+  document.getElementById("exportAllButton").addEventListener("click", () => {
+    downloadClaims(claimResults, "omnilens_all_classifications.csv");
+  });
+
+  document.getElementById("restartButton").addEventListener("click", () => {
+    sessionStorage.removeItem("omnilensReference");
+    sessionStorage.removeItem("omnilensSelectedArticles");
+    window.location.href = "input.html";
+  });
+
+  renderClaims();
+</script>
+</body>
+</html>

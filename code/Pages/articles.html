@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OmniLens — Related Articles</title>
+<link rel="stylesheet" href="omnilens.css" />
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="brand">OmniLens</div>
+    <div class="progress" aria-label="Workflow progress">
+      <span class="progress-dot complete" data-progress="1"></span>
+      <span class="progress-dot active" data-progress="2"></span>
+      <span class="progress-dot" data-progress="3"></span>
+      <span class="progress-dot" data-progress="4"></span>
+    </div>
+  </header>
+  <main>
+<!-- Screen 3 -->
+    <section class="screen active" id="screen3">
+      <div class="step">Stage 2 of 4 · Related articles</div>
+
+      <h1>Select articles to compare.</h1>
+
+      <p class="intro">
+        We found five articles covering the same event. Remove any article
+        that you do not want to include in the analysis.
+      </p>
+
+      <section class="reference">
+        <div class="reference-label">Reference article</div>
+        <div class="reference-title" id="referenceTitle">
+          Federal officials announce new measures following regional infrastructure disruptions
+        </div>
+      </section>
+
+      <div class="list-header">
+        <div class="selection-count" id="selectionCount">5 of 5 selected</div>
+        <button class="select-all" id="selectAllButton" type="button">
+          Clear all
+        </button>
+      </div>
+
+      <section class="articles">
+        <label class="article">
+          <input type="checkbox" checked />
+          <span class="checkbox"></span>
+
+          <span>
+            <span class="article-title">
+              Officials provide updated timeline for restoring regional services
+            </span>
+            <span class="article-meta">
+              <span>Reuters</span>
+              <span>November 12, 2026</span>
+            </span>
+          </span>
+
+          <span class="match">96% match</span>
+        </label>
+
+        <label class="article">
+          <input type="checkbox" checked />
+          <span class="checkbox"></span>
+
+          <span>
+            <span class="article-title">
+              What residents should know about the ongoing service disruptions
+            </span>
+            <span class="article-meta">
+              <span>Associated Press</span>
+              <span>November 12, 2026</span>
+            </span>
+          </span>
+
+          <span class="match">93% match</span>
+        </label>
+
+        <label class="article">
+          <input type="checkbox" checked />
+          <span class="checkbox"></span>
+
+          <span>
+            <span class="article-title">
+              Local agencies respond as infrastructure problems continue
+            </span>
+            <span class="article-meta">
+              <span>BBC News</span>
+              <span>November 11, 2026</span>
+            </span>
+          </span>
+
+          <span class="match">91% match</span>
+        </label>
+
+        <label class="article">
+          <input type="checkbox" checked />
+          <span class="checkbox"></span>
+
+          <span>
+            <span class="article-title">
+              Regional leaders face questions over emergency response
+            </span>
+            <span class="article-meta">
+              <span>CNN</span>
+              <span>November 11, 2026</span>
+            </span>
+          </span>
+
+          <span class="match">88% match</span>
+        </label>
+
+        <label class="article">
+          <input type="checkbox" checked />
+          <span class="checkbox"></span>
+
+          <span>
+            <span class="article-title">
+              Communities adapt while officials investigate disruption causes
+            </span>
+            <span class="article-meta">
+              <span>The Guardian</span>
+              <span>November 10, 2026</span>
+            </span>
+          </span>
+
+          <span class="match">84% match</span>
+        </label>
+      </section>
+
+      <div class="actions">
+        <button class="secondary" id="backToConfirmationButton" type="button">
+          Back
+        </button>
+
+        <button class="primary" id="compareButton" type="button">
+          Compare 5 selected articles
+        </button>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+(function articlesApp() {
+  const reference = JSON.parse(sessionStorage.getItem('omnilensReference') || 'null');
+  if (reference?.title) document.getElementById('referenceTitle').textContent = reference.title;
+  const checkboxes = [...document.querySelectorAll(".article input[type='checkbox']")];
+  const selectionCount = document.getElementById('selectionCount');
+  const selectAllButton = document.getElementById('selectAllButton');
+  const compareButton = document.getElementById('compareButton');
+
+  function updateSelection() {
+    const selected = checkboxes.filter(box => box.checked).length;
+    selectionCount.textContent = `${selected} of ${checkboxes.length} selected`;
+    compareButton.textContent = `Compare ${selected} selected article${selected === 1 ? '' : 's'}`;
+    compareButton.disabled = selected === 0;
+    selectAllButton.textContent = selected === checkboxes.length ? 'Clear all' : 'Select all';
+  }
+
+  checkboxes.forEach(box => box.addEventListener('change', updateSelection));
+  selectAllButton.addEventListener('click', () => {
+    const allSelected = checkboxes.every(box => box.checked);
+    checkboxes.forEach(box => { box.checked = !allSelected; });
+    updateSelection();
+  });
+  document.getElementById('backToConfirmationButton').addEventListener('click', () => {
+    window.location.href = 'input.html?confirm=1';
+  });
+  compareButton.addEventListener('click', () => {
+    const articles = checkboxes.filter(box => box.checked).map(box => {
+      const row = box.closest('.article');
+      return {
+        title: row.querySelector('.article-title').textContent.trim(),
+        metadata: row.querySelector('.article-meta').textContent.replace(/\s+/g, ' ').trim()
+      };
+    });
+    sessionStorage.setItem('omnilensSelectedArticles', JSON.stringify({ count: articles.length, articles }));
+    window.location.href = 'analysis.html';
+  });
+  updateSelection();
+})();
+</script>
+</body>
+</html>

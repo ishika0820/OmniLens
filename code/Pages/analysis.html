@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OmniLens — Analysis</title>
+<link rel="stylesheet" href="omnilens.css" />
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="brand">OmniLens</div>
+    <div class="progress" aria-label="Workflow progress">
+      <span class="progress-dot complete" data-progress="1"></span>
+      <span class="progress-dot complete" data-progress="2"></span>
+      <span class="progress-dot active" data-progress="3"></span>
+      <span class="progress-dot" data-progress="4"></span>
+    </div>
+  </header>
+  <main>
+<!-- Screen 4 -->
+    <section class="screen active" id="screen4">
+      <div class="narrow">
+        <div class="step">Stage 3 of 4 · Analysis</div>
+
+        <h1 id="analysisHeading">Comparing the coverage.</h1>
+
+        <p class="intro" id="analysisIntro">
+          OmniLens is examining each selected article against your reference.
+          You can leave this page open while the analysis runs.
+        </p>
+
+        <section class="analysis-summary">
+          <div class="analysis-summary-label">Current analysis</div>
+          <div class="analysis-summary-text" id="analysisSummary">
+            1 reference article · 5 related articles
+          </div>
+        </section>
+
+        <div
+          class="analysis-progress-track"
+          role="progressbar"
+          aria-label="Analysis progress"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+          id="analysisProgressTrack"
+        >
+          <div class="analysis-progress-bar" id="analysisProgressBar"></div>
+        </div>
+
+        <div class="analysis-stages" id="analysisStages">
+          <div class="analysis-stage" data-stage="0">
+            <span class="stage-mark"></span>
+            <span class="stage-name" id="prepareStageName">Preparing six articles</span>
+            <span class="stage-status">Waiting</span>
+          </div>
+
+          <div class="analysis-stage" data-stage="1">
+            <span class="stage-mark"></span>
+            <span class="stage-name">Extracting claims with FENICE</span>
+            <span class="stage-status">Waiting</span>
+          </div>
+
+          <div class="analysis-stage" data-stage="2">
+            <span class="stage-mark"></span>
+            <span class="stage-name">Matching claims with reference passages</span>
+            <span class="stage-status">Waiting</span>
+          </div>
+
+          <div class="analysis-stage" data-stage="3">
+            <span class="stage-mark"></span>
+            <span class="stage-name">Classifying claim relationships</span>
+            <span class="stage-status">Waiting</span>
+          </div>
+
+          <div class="analysis-stage" data-stage="4">
+            <span class="stage-mark"></span>
+            <span class="stage-name">Grouping repeated claims</span>
+            <span class="stage-status">Waiting</span>
+          </div>
+
+          <div class="analysis-stage" data-stage="5">
+            <span class="stage-mark"></span>
+            <span class="stage-name">Preparing results</span>
+            <span class="stage-status">Waiting</span>
+          </div>
+        </div>
+
+        <div class="analysis-state" id="analysisState" role="status">
+          <div class="analysis-state-title" id="analysisStateTitle"></div>
+          <p class="analysis-state-copy" id="analysisStateCopy"></p>
+          <div class="analysis-state-actions" id="analysisStateActions"></div>
+        </div>
+
+        <div class="analysis-footer">
+          <div class="analysis-note" id="analysisNote">
+            Keep this page open until the comparison is complete.
+          </div>
+          <button class="secondary compact-action" id="cancelAnalysisButton" type="button">
+            Cancel analysis
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+(function analysisApp() {
+  const selection = JSON.parse(sessionStorage.getItem('omnilensSelectedArticles') || '{"count":5}');
+  const selectedCount = selection.count || 5;
+  const stages = [...document.querySelectorAll('.analysis-stage')];
+  const progressBar = document.getElementById('analysisProgressBar');
+  const progressTrack = document.getElementById('analysisProgressTrack');
+  const state = document.getElementById('analysisState');
+  const stateTitle = document.getElementById('analysisStateTitle');
+  const stateCopy = document.getElementById('analysisStateCopy');
+  const stateActions = document.getElementById('analysisStateActions');
+  const heading = document.getElementById('analysisHeading');
+  const intro = document.getElementById('analysisIntro');
+  const note = document.getElementById('analysisNote');
+  const cancelButton = document.getElementById('cancelAnalysisButton');
+  let timer = null;
+
+  document.getElementById('analysisSummary').textContent = `1 reference article · ${selectedCount} related article${selectedCount === 1 ? '' : 's'}`;
+  document.getElementById('prepareStageName').textContent = `Preparing ${selectedCount + 1} articles`;
+
+  function showState(title, copy, actions) {
+    stateTitle.textContent = title;
+    stateCopy.textContent = copy;
+    stateActions.innerHTML = '';
+    actions.forEach(action => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `${action.primary ? 'primary' : 'secondary'} compact-action`;
+      button.textContent = action.label;
+      button.addEventListener('click', action.onClick);
+      stateActions.appendChild(button);
+    });
+    state.classList.add('visible');
+  }
+
+  function reset() {
+    clearTimeout(timer);
+    state.classList.remove('visible');
+    heading.textContent = 'Comparing the coverage.';
+    intro.textContent = 'OmniLens is examining each selected article against your reference. You can leave this page open while the analysis runs.';
+    note.textContent = 'Keep this page open until the comparison is complete.';
+    cancelButton.hidden = false;
+    progressBar.style.width = '0%';
+    stages.forEach(stage => {
+      stage.className = 'analysis-stage';
+      stage.querySelector('.stage-mark').textContent = '';
+      stage.querySelector('.stage-status').textContent = 'Waiting';
+    });
+  }
+
+  function complete() {
+    heading.textContent = 'Analysis complete.';
+    intro.textContent = 'The comparison is ready. New, conflicting and shared claims have been organized for review.';
+    note.textContent = 'Your results are ready to view.';
+    cancelButton.hidden = true;
+    showState('Results prepared', 'OmniLens completed the comparison across all selected sources.', [
+      { label: 'View results', primary: true, onClick: () => { window.location.href = 'results.html'; } }
+    ]);
+  }
+
+  function run(index = 0) {
+    if (index >= stages.length) return complete();
+    stages.forEach((stage, stageIndex) => {
+      const mark = stage.querySelector('.stage-mark');
+      const status = stage.querySelector('.stage-status');
+      stage.className = 'analysis-stage';
+      if (stageIndex < index) {
+        stage.classList.add('complete'); mark.textContent = '✓'; status.textContent = 'Complete';
+      } else if (stageIndex === index) {
+        stage.classList.add('active'); mark.textContent = ''; status.textContent = 'In progress';
+      } else {
+        mark.textContent = ''; status.textContent = 'Waiting';
+      }
+    });
+    const value = Math.round((index / stages.length) * 100);
+    progressBar.style.width = `${value}%`;
+    progressTrack.setAttribute('aria-valuenow', String(value));
+    timer = setTimeout(() => {
+      if (index === stages.length - 1) {
+        const finalStage = stages[index];
+        finalStage.className = 'analysis-stage complete';
+        finalStage.querySelector('.stage-mark').textContent = '✓';
+        finalStage.querySelector('.stage-status').textContent = 'Complete';
+        progressBar.style.width = '100%';
+        progressTrack.setAttribute('aria-valuenow', '100');
+      }
+      run(index + 1);
+    }, 900);
+  }
+
+  function start() { reset(); run(); }
+  cancelButton.addEventListener('click', () => {
+    clearTimeout(timer);
+    cancelButton.hidden = true;
+    heading.textContent = 'Analysis canceled.';
+    intro.textContent = 'No results were created, and your article selections are still available.';
+    note.textContent = 'Return to the selected articles or restart when ready.';
+    showState('Analysis stopped', 'You can return to the article list or restart the same comparison.', [
+      { label: 'Back to articles', primary: false, onClick: () => { window.location.href = 'articles.html'; } },
+      { label: 'Restart analysis', primary: true, onClick: start }
+    ]);
+  });
+  start();
+})();
+</script>
+</body>
+</html>
