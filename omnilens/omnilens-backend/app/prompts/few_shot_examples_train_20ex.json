@@ -1,0 +1,162 @@
+[
+  {
+    "annotator": "Ishika",
+    "reference_article": "Foot Locker plans to close more than 400 mall-based stores",
+    "claim": "Foot Locker planned to close 400 underperforming stores by 2026.",
+    "label": "CONFLICTING",
+    "reference_evidence": "Business Insider reports that Foot Locker expects to close as many as 420 mall stores by 2026.",
+    "notes": ""
+  },
+  {
+    "annotator": "Samiksha",
+    "reference_article": "Berkshire Hathaway: I Smell A Bank Deal (NYSE:BRK.B)",
+    "claim": "An investment by Buffett could help restore confidence without bailing investors out directly, Bloomberg reported.",
+    "label": "SHARED",
+    "reference_evidence": "Shared with Reference Article: 'However, it's the same situation where you've got banks that are trading way below book value and would basically be safe if they could get access to a few billion dollars extra in capital - which is just what an investor like Buffett can supply.' — Both say Buffett's capital could stabilise struggling banks.",
+    "notes": ""
+  },
+  {
+    "annotator": "Saisha",
+    "reference_article": "OpenAI CEO Sam Altman says AI will reshape society, acknowledges risks: 'A little bit scared of this'",
+    "claim": "Altman admitted OpenAI was scared of AI's rapid development.",
+    "label": "SHARED",
+    "reference_evidence": "“\"We've got to be careful here,\" said Sam Altman, CEO of OpenAI. \"I think people should be happy that we are a little bit scared of this.\"”",
+    "notes": ""
+  },
+  {
+    "annotator": "Ishika",
+    "reference_article": "Rock collapse kills two in Turkey's Cappadocia, local media reports",
+    "claim": "The area was closed to the public after the collapse, according to local reports.",
+    "label": "NEW",
+    "reference_evidence": "BBC does not mention closure of the area.",
+    "notes": ""
+  },
+  {
+    "annotator": "Jeevika",
+    "reference_article": "Ethiopia says US war crime allegations 'inflammatory'",
+    "claim": "Ethiopia's government released a green paper with transitional justice options.",
+    "label": "NEW",
+    "reference_evidence": "",
+    "notes": ""
+  },
+  {
+    "annotator": "Ishika",
+    "reference_article": "2023 Dodge Challenger SRT Demon 170 First Look: A 1,025-HP Hell Yeah!",
+    "claim": "The Demon 170 uses a 3.0-liter supercharger.",
+    "label": "SHARED",
+    "reference_evidence": "MotorTrend identifies a new 3.0-liter supercharger.",
+    "notes": ""
+  },
+  {
+    "annotator": "Ishika",
+    "reference_article": "Foot Locker plans to close more than 400 mall-based stores",
+    "claim": "Foot Locker planned to close more than 400 underperforming stores.",
+    "label": "SHARED",
+    "reference_evidence": "Business Insider reports plans to close more than 400 mall-based stores.",
+    "notes": ""
+  },
+  {
+    "annotator": "Samiksha",
+    "reference_article": "Berkshire Hathaway: I Smell A Bank Deal (NYSE:BRK.B)",
+    "claim": "The release noted Silicon Valley Bank CEO Gregory Becker sold $3 million in stock the day before the FDIC took control.",
+    "label": "NEW",
+    "reference_evidence": "Conflicts with Candidate 11.7: 'Worth noting: SVB CEO Greg Becker sold $3.6 million worth of his own stock in the company in late February -- an action that the Department of Justice may scrutinize.' — IBD dates the sale to the day before the FDIC takeover (March 9-10), while Axios places it in late February. Also shared in substance with Candidate 11.3: 'The White House said SVB's CEO reportedly sold more than $3 million in shares mere days before the FDIC took it over.'",
+    "notes": ""
+  },
+  {
+    "annotator": "Jeevika",
+    "reference_article": "Somalia drought could lead to 135 deaths a day: UN study",
+    "claim": "Since the drought began two years ago, an estimated 600,000 of Somalia's livestock have perished.",
+    "label": "CONFLICTING",
+    "reference_evidence": "Article 1 states: \"Five straight failed rainy seasons in parts of Kenya, Ethiopia and Somalia have killed millions of livestock.\"",
+    "notes": ""
+  },
+  {
+    "annotator": "Saisha",
+    "reference_article": "Bed Bath & Beyond Shares Drop Following Announcement of Reverse Stock Split Plan",
+    "claim": "Bed Bath & Beyond scheduled its special shareholder meeting for May 9, 2023.",
+    "label": "CONFLICTING",
+    "reference_evidence": "“The retailer will hold a special meeting on March 27”",
+    "notes": ""
+  },
+  {
+    "annotator": "Ishika",
+    "reference_article": "Foot Locker plans to close more than 400 mall-based stores",
+    "claim": "Foot Locker forecast a 3.5% to 5.5% decline in comparable sales for fiscal 2023.",
+    "label": "NEW",
+    "reference_evidence": "",
+    "notes": ""
+  },
+  {
+    "annotator": "Pavanitha",
+    "reference_article": "Light pollution from satellites worse than previously thought, warn scientists",
+    "claim": "Researchers predicted a 12 percent increase in night sky brightness by 2030 from satellites and space debris.",
+    "label": "CONFLICTING",
+    "reference_evidence": "Modelling suggested the darkest part of the night sky would become 7.5 percent brighter over the next decade for the Vera Rubin Observatory.",
+    "notes": ""
+  },
+  {
+    "annotator": "Samiksha",
+    "reference_article": "CORRECTED-US STOCKS-Futures seesaw on bank worries, rate-hike pause hopes",
+    "claim": "Over the weekend, UBS agreed to buy its US arm Credit Suisse for $3.23 billion, in a shotgun merger engineered by Swiss authorities to avoid more market-shaking turmoil in the banking sector.",
+    "label": "CONFLICTING",
+    "reference_evidence": "Conflicts with Reference Article: 'Over the weekend, UBS agreed to buy rival Credit Suisse for $3.23 billion, in a shotgun merger engineered by Swiss authorities to avoid more market-shaking turmoil in global banking.' and Candidate 10.3: 'Flashback: After years of mismanagement and scandal-ridden headlines, the storied 167-year-old European banking giant was laid low by a crisis rattling the banking sector in the wake of Silicon Valley Bank's failure.' — Daily Mail calls Credit Suisse UBS's \"US arm\", while the reference calls it a rival and Axios describes it as a European banking giant. The $3.23 billion price is shared with the reference.",
+    "notes": ""
+  },
+  {
+    "annotator": "Jeevika",
+    "reference_article": "Somalia drought could lead to 135 deaths a day: UN study",
+    "claim": "Half of the deaths might have occurred among children under five.",
+    "label": "SHARED",
+    "reference_evidence": "Article 1 states: \"It also said that the extreme weather conditions may have led to 43,000 \"excess deaths\" last year compared to a 2017 drought, with children under the age of five accounting for half the victims.\"",
+    "notes": ""
+  },
+  {
+    "annotator": "Samiksha",
+    "reference_article": "Silicon Valley Bank's parent company files for bankruptcy",
+    "claim": "One financial institution stood out for having far more uninsured deposits than all the others: Silicon Valley Bank, where more than 90 percent of the deposits were uninsured.",
+    "label": "NEW",
+    "reference_evidence": "Shared with Candidate 12.8: 'On page 80 of its annual 10-K report for 2022 filed with the Securities and Exchange Commission, Silicon Valley Bank's holding company SVB Financial Corp. SIVB, -60.41% estimated that it had $151.5 billion in uninsured deposits, or 88% of all deposits as of Dec. 31.' — Both say the vast majority of SVB's deposits were uninsured (2018 vs. 2022 figures).",
+    "notes": ""
+  },
+  {
+    "annotator": "Ishika",
+    "reference_article": "Rock collapse kills two in Turkey's Cappadocia, local media reports",
+    "claim": "Rescue teams later pulled another body from the rubble, bringing the death toll to three, Nevsehir Governor Huseyin Kok said.",
+    "label": "CONFLICTING",
+    "reference_evidence": "BBC: \"At least two people have been killed and five injured...\" and reports that the minister's initial assessment was two deaths.",
+    "notes": ""
+  },
+  {
+    "annotator": "Yogita",
+    "reference_article": "Former Taiwan President Ma Ying-jeou to make historic visit to mainland China - Local News 6",
+    "claim": "Ma Ying-jeou Foundation director Hsiao Hsu-tsen told reporters that Ma's trip was mostly about student exchanges",
+    "label": "SHARED",
+    "reference_evidence": "Shared with Reference Article (38.1): ‘He will pay respects to his ancestors in southwestern Hunan province and lead a delegation of Taiwanese students to interact with counterparts from mainland China in a number of cities, according to the foundation.’. Shared with Article 38.10: ‘The foundation said Ma's trip to China is aimed at worshipping his ancestors during the upcoming Qingming or Tomb Sweeping Festival, and he will lead a delegation comprised of Taiwanese students to make exchanges with their Chinese counterparts.’. Shared with Article 38.7: ‘Ma will lead a group of students to Shanghai and other cities, and also pay his respects at his family's ancestral hometown from March 27 to April 7, said Hsiao Hsu-tsen, who leads a foundation for Ma.’. Shared with Article 38.8: ‘Ma is now planning a Tomb Sweeping Day visit to China from March 27 to April 7, ostensibly to pay respects to his ancestors.’. Shared with Article 38.8: ‘He will not be going alone, leading a delegation of students from his foundation to visit historical sites and educational centers in Nanjing, Wuhan, Changsha, Chongqing, Shanghai, and other cities.’. Shared with Article 38.3: ‘Ma, a member of the opposition Nationalist Party (Kuomingtang), will lead a delegation of academics and students as well as his former presidential staffers from March 27 to April 7, his office said Sunday.’. Shared with Article 38.3: ‘The trip is also a chance for him to honor his ancestors, he added, ahead of Tomb Sweeping Day on April 5.’. ,  All describe student exchanges/delegations and ancestor homage. Separate original sentences are quoted separately, not combined into fabricated sentences.",
+    "notes": ""
+  },
+  {
+    "annotator": "Pavanitha",
+    "reference_article": "Winter is gone. But can we really say Europe's energy crisis is over?",
+    "claim": "The European gas price had fallen to around EUR150 per megawatt-hour by December 2022.",
+    "label": "NEW",
+    "reference_evidence": "",
+    "notes": ""
+  },
+  {
+    "annotator": "Pavanitha",
+    "reference_article": "Mount Everest is preserving germs sneezed by climbers. They are sleeping for now",
+    "claim": "Researchers sequenced genetic material in the soils to identify specific microbes.",
+    "label": "SHARED",
+    "reference_evidence": "Researchers used next-generation gene sequencing to analyze soil from Everest.",
+    "notes": ""
+  },
+  {
+    "annotator": "Yogita",
+    "reference_article": "Officials Say It's Fine That Millions of Fish Suddenly Died in This River",
+    "claim": "An Australian Department of Primary Industries spokesman gave an estimate of one million fish.",
+    "label": "CONFLICTING",
+    "reference_evidence": "Conflicts with Reference Article (39.1): ‘Just take it from the Department of Public Industries -- whatever that means -- in New South Wales, who noted in a Facebook post last week that even though the agency is \"aware of a developing large-scale fish death event\" affecting \"millions\" of fish, this kind of thing can sort of just happen to the Bony Herring that keep turning up dead in droves on the shores of NSW's Darling River.’ ,  The reference calls the NSW DPI the Department of Public Industries, while 39.7 identifies it as the Department of Primary Industries. Shared with Article 39.10: ‘On Friday, the NSW Department of Primary Industries (NSW DPI) confirmed on social media that the agency is aware of a developing large-scale fish death event on the Lower Darling-Baaka below Menindee Main Weir through to Weir 32, adjacent to the Menindee township.’. Shared with Article 39.10: ‘\"It is estimated that millions of fish, predominantly Bony Herring (Bony Bream) have been affected, as well as smaller number of other large-bodied species such as Murray Cod, Golden Perch, Silver Perch and Carp,\" said the department.’. ,  39.10 shares the Primary Industries name and broadly the species composition. The reference shares the fish-death event and Bony Herring predominance. Early one-million estimates versus later millions are not labeled Conflicting without matching time and counting scope.",
+    "notes": ""
+  }
+]

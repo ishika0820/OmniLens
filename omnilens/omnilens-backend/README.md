@@ -2,9 +2,7 @@
 
 OmniLens is an NLP-powered news analysis application that discovers related news articles and extracts factual claims to help users compare how different sources report the same event.
 
-The backend currently integrates **Event Registry** for news discovery and article retrieval, and **FENICE (T5-based claim extraction)** for extracting claims from related articles.
-
-Claim annotation using Claude is planned as the next integration.
+The backend integrates **Event Registry** for news discovery and article retrieval, **FENICE (T5-based claim extraction)** for extracting claims from related articles, and **Claude** for labeling each claim as **SHARED**, **NEW**, or **CONFLICTING** against the reference article.
 
 ## 1. How It Works
 
@@ -17,11 +15,35 @@ The current pipeline follows these steps:
 5. Article text is cleaned to remove common boilerplate and unrelated recommendations.
 6. FENICE extracts factual claims from each related article.
 7. Extracted claims are cleaned to remove obvious fragments, boilerplate, and duplicates within each article.
-8. Results are displayed in the browser and can be downloaded as JSON.
+8. Claude labels every claim against the full (cleaned) reference article:
+   - **SHARED**: the reference states the same fact, possibly in different words.
+   - **NEW**: the reference does not contain this fact.
+   - **CONFLICTING**: the reference makes an incompatible statement about the same fact.
+9. Results, including label counts, are displayed in the browser and can be downloaded as JSON.
 
 **Current pipeline:**
 
-`Reference URL → Event Registry → Article Filtering → Text Cleaning → FENICE → Claim Cleaning → JSON Output`
+`Reference URL → Event Registry → Article Filtering → Text Cleaning → FENICE → Claim Cleaning → Claude Claim Labeling → JSON Output`
+
+### Claim labeling (Claude)
+
+`app/claim_annotator.py` is ported from the project's claim classification experiments. Its default settings match the best validation run (macro-F1 0.917 on the 212 validation claims):
+
+| Setting | Value |
+|---|---|
+| Model | `claude-sonnet-5-5` |
+| Effort | `medium` |
+| Prompt | `app/prompts/classification_prompt.txt` |
+| Few-shot examples | `app/prompts/few_shot_examples_train_20ex.json` (20 human-labeled examples) |
+| Output | structured JSON: `label`, `confidence`, `reference_evidence`, `explanation` |
+
+How the API calls are made:
+
+- One request per claim, each with the full reference article and the claim.
+- The instructions, the examples, and the reference article are cached, so every claim after the first costs much less.
+- The first claim is sent alone to write the cache; the rest are sent six at a time.
+- Claims from all related articles are labeled in one batch, because they share the same reference.
+- If one claim fails, it gets `label: null` and an `annotation_error`, and the others continue. A wrong API key, workspace, or model name stops the analysis.
 
 ## 2. Project Structure
 
@@ -35,14 +57,18 @@ omnilens-backend/
 │   ├── claim_extractor.py     # FENICE T5 claim extraction
 │   ├── claim_cleaner.py       # Claim filtering and deduplication
 │   ├── pipeline.py            # End-to-end orchestration
-│   ├── index.html             # Local web interface
-│   ├── claim_annotator.py     # Reserved for Claude integration
+│   ├── index.html             # Local web interface (shows label counts)
+│   ├── claim_annotator.py     # Claude SHARED / NEW / CONFLICTING labeling
+│   ├── prompts/
+│   │   ├── classification_prompt.txt          # Labeling instructions
+│   │   └── few_shot_examples_train_20ex.json  # 20 few-shot examples
 │   └── schemas.py             # Reserved for shared data schemas
 ├── tests/
 │   ├── __init__.py
 │   ├── test_news_provider.py
 │   ├── test_claim_extractor.py
-│   └── test_claim_cleaner.py
+│   ├── test_claim_cleaner.py
+│   └── test_claim_annotator.py  # Labeling tests (fake Claude client, no API calls)
 ├── notebooks/                 # Research and evaluation notebooks
 ├── requirements.txt
 ├── requirements-lock.txt      # If generated
@@ -58,6 +84,7 @@ Before running the backend, make sure you have:
 - Python 3.11
 - Git
 - An Event Registry API key
+- An Anthropic API key (for claim labeling)
 - An internet connection for news retrieval and initial model downloads
 
 The FENICE model is downloaded automatically from Hugging Face on its first run.
@@ -132,17 +159,26 @@ If `.env.example` exists:
 cp .env.example .env
 ```
 
-Add your Event Registry API key:
+Add your API keys:
 
 ```env
 EVENTREGISTRY_API_KEY=your_eventregistry_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+# Optional: only if your key belongs to a specific Anthropic workspace
+ANTHROPIC_WORKSPACE_ID=your_workspace_id
 ```
 
-You can register for an API key at https://newsapi.ai/.
+You can register for an Event Registry API key at https://newsapi.ai/ and create an Anthropic API key in the Anthropic Console.
+
+Optional overrides for claim labeling (the defaults are the validated settings):
+
+```env
+OMNILENS_CLAUDE_MODEL=claude-sonnet-5-5
+OMNILENS_CLAUDE_EFFORT=medium
+OMNILENS_CLAUDE_WORKERS=6
+```
 
 **Important:** Never commit `.env` or real API keys to GitHub. The `.gitignore` file should exclude them.
-
-An Anthropic API key will be required once Claude claim annotation is integrated.
 
 ## 5. Running OmniLens
 
@@ -160,11 +196,14 @@ http://127.0.0.1:8000
 
 1. Paste a news article URL into the input field.
 2. Click **Analyze Article**.
-3. Wait while Event Registry retrieves related articles and FENICE extracts their claims.
-4. Review the extracted claims grouped by publisher.
-5. Click **Download JSON** to save the results.
+3. Wait while Event Registry retrieves related articles, FENICE extracts their claims, and Claude labels them.
+4. Review the summary: the number of **Shared**, **New**, and **Conflicting** claims. Click a count to show only those claims.
+5. Review the claims grouped by publisher. Each claim shows its label, confidence, the matching reference sentence ("Reference says"), and Claude's explanation ("Why").
+6. Click **Download JSON** to save the results.
 
-The first run may take longer because the FENICE model must be downloaded and loaded into memory.
+The first run may take longer because the FENICE model must be downloaded and loaded into memory. Labeling makes one Claude request per claim, so an analysis with many claims takes about a minute longer.
+
+Use `--reload` only while editing code; it keeps watching files and uses extra CPU.
 
 Keep the terminal running while using the application. Press `Ctrl+C` to stop the server.
 
@@ -174,7 +213,7 @@ The backend is built using FastAPI.
 
 ### `POST /api/analyze`
 
-Accepts a reference article URL and returns the related articles with extracted claims.
+Accepts a reference article URL and returns the related articles with extracted and labeled claims.
 
 **Example request:**
 
@@ -191,8 +230,8 @@ Accepts a reference article URL and returns the related articles with extracted 
 
 ```json
 {
-  "pipeline_version": "1.1",
-  "status": "extraction_complete",
+  "pipeline_version": "1.2",
+  "status": "annotation_complete",
   "event_id": "example_event_id",
   "reference_article": {
     "article_id": "ref_001",
@@ -217,7 +256,12 @@ Accepts a reference article URL and returns the related articles with extracted 
           "article_id": "cand_001",
           "text": "An extracted factual claim.",
           "chunk_index": 0,
-          "source_chunk": "Original source passage..."
+          "source_chunk": "Original source passage...",
+          "label": "CONFLICTING",
+          "confidence": "Medium",
+          "reference_evidence": "The matching sentence from the reference article.",
+          "explanation": "Names the detail that clashes and both versions of it.",
+          "annotation_error": ""
         }
       ]
     }
@@ -225,10 +269,27 @@ Accepts a reference article URL and returns the related articles with extracted 
   "summary": {
     "articles_found": 1,
     "articles_processed": 1,
-    "total_claims": 1
+    "total_claims": 1,
+    "labeled_claims": 1,
+    "failed_labels": 0,
+    "label_counts": {
+      "SHARED": 0,
+      "NEW": 0,
+      "CONFLICTING": 1
+    }
   }
 }
 ```
+
+Fields added to each claim by labeling:
+
+| Field | Values |
+|---|---|
+| `label` | `SHARED`, `NEW`, `CONFLICTING`, or `null` if labeling failed |
+| `confidence` | `High`, `Medium`, `Low`, or `null` |
+| `reference_evidence` | the matching reference sentence (empty for `NEW`) |
+| `explanation` | one or two sentences on why |
+| `annotation_error` | empty on success, otherwise the error message |
 
 The actual response also contains publication metadata and claim-cleaning diagnostics.
 
@@ -248,6 +309,7 @@ http://127.0.0.1:8000/docs
 | Sentence splitting | NLTK | Preparing article chunks |
 | Article deduplication | Python `difflib` | Filtering near-duplicate articles |
 | Claim cleaning | Python regular expressions | Removing obvious invalid claims |
+| Claim labeling | Claude (`claude-sonnet-5-5`) via the `anthropic` SDK | SHARED / NEW / CONFLICTING labels with evidence |
 | Frontend | HTML, CSS, JavaScript | Local application interface |
 
 FENICE runs on CUDA, Apple Silicon MPS, or CPU depending on the available hardware.
@@ -258,6 +320,12 @@ Run the claim-cleaning unit tests:
 
 ```bash
 python -m pytest tests/test_claim_cleaner.py -v
+```
+
+Run the claim-labeling tests (they use a fake Claude client, so they need no API key and make no API calls):
+
+```bash
+python -m pytest tests/test_claim_annotator.py -v
 ```
 
 Test Event Registry discovery:
@@ -292,13 +360,13 @@ Some integration tests may require external services and model downloads.
 - **Claim quality:** FENICE may occasionally produce incomplete, redundant, or semantically incorrect claims. Rule-based cleaning removes obvious issues but does not guarantee factual faithfulness.
 - **Duplicates:** Article deduplication is heuristic and may not identify every syndicated copy.
 - **Language:** Related-article retrieval currently focuses on English-language news.
-- **Annotation:** SHARED, NEW, and CONFLICTING classification has not yet been integrated.
+- **Labeling:** Each claim is one Claude request, so analyses with many claims take longer and use more API credit. Labels can be wrong; CONFLICTING is the rarest and hardest label. Failed claims are returned with `label: null`.
 - **Deployment:** The application is currently intended for local development and testing, not unrestricted public deployment.
 
 ## 10. Planned Improvements
 
-- Integrate Claude-based claim annotation against the reference article.
-- Return SHARED, NEW, and CONFLICTING labels with reference evidence and explanations.
+- Label repeated claims across articles only once.
+- Connect the frontend (`master_yogita`) to the labeled claims in `/api/analyze`.
 - Improve unsupported-URL handling and fallback discovery.
 - Test across multiple news events and publishers.
 - Add stronger API security, request limits, and error handling.
@@ -329,4 +397,4 @@ Coordinate with the team before merging backend changes into `main`.
 ---
 
 **Project:** OmniLens  
-**Current status:** News discovery, article retrieval, and claim extraction implemented. Claude claim annotation pending.
+**Current status:** News discovery, article retrieval, claim extraction, and Claude claim labeling (SHARED / NEW / CONFLICTING) implemented.

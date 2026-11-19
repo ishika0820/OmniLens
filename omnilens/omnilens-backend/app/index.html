@@ -73,6 +73,27 @@
     .hidden { display: none; }
     a { color: #2454a6; overflow-wrap: anywhere; }
 
+    /* Label counts and badges */
+    .counts { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 18px; }
+    .count {
+      border: 1px solid #e4e7ec; border-radius: 10px;
+      padding: 10px 16px; min-width: 120px; background: #fff;
+      cursor: pointer; color: #172033; text-align: left;
+    }
+    .count strong { display: block; font-size: 24px; }
+    .count.active { outline: 2px solid #172033; }
+    .article-counts { margin: 6px 0 4px; }
+    .badge {
+      display: inline-block; font-size: 12px; font-weight: 600;
+      padding: 2px 8px; border-radius: 999px; margin-right: 8px;
+    }
+    .label-SHARED { background: #e7f6ec; color: #1f7a3d; }
+    .label-NEW { background: #e8effc; color: #2454a6; }
+    .label-CONFLICTING { background: #fdecea; color: #b42318; }
+    .label-NONE { background: #f2f4f7; color: #667085; }
+    .claim-detail { font-size: 14px; color: #475467; margin: 6px 0 0; }
+    .claim-detail b { color: #172033; font-weight: 600; }
+
     @media (max-width: 600px) {
       .search { flex-direction: column; }
     }
@@ -84,7 +105,8 @@
     <h1>OmniLens</h1>
 
     <p class="subtitle">
-      Discover related news coverage and extract factual claims.
+      Discover related news coverage, extract factual claims and label each one
+      as shared with, new to, or conflicting with the reference article.
     </p>
 
     <form id="form" class="search">
@@ -106,6 +128,7 @@
       <div class="card">
         <h2>Analysis Summary</h2>
         <div id="summary"></div>
+        <div id="counts" class="counts"></div>
         <button id="download" type="button">
           Download JSON
         </button>
@@ -124,11 +147,97 @@
     const articles = document.getElementById("articles");
     const button = document.getElementById("analyze");
 
+    const LABELS = ["SHARED", "NEW", "CONFLICTING"];
+    const LABEL_TEXT = {
+      SHARED: "Shared with reference",
+      NEW: "New (not in reference)",
+      CONFLICTING: "Conflicting with reference"
+    };
+    let activeFilter = "ALL";
+
     function element(tag, text, className = "") {
       const node = document.createElement(tag);
       node.textContent = text ?? "";
       if (className) node.className = className;
       return node;
+    }
+
+    function countLabels(claims) {
+      const counts = { SHARED: 0, NEW: 0, CONFLICTING: 0, NONE: 0 };
+      claims.forEach((claim) => {
+        counts[LABELS.includes(claim.label) ? claim.label : "NONE"] += 1;
+      });
+      return counts;
+    }
+
+    // One labeled claim: badge, confidence, text, then the evidence
+    function renderClaim(claim) {
+      const row = element("div", "", "claim");
+      const label = LABELS.includes(claim.label) ? claim.label : "NONE";
+      row.dataset.label = label;
+
+      row.appendChild(element(
+        "span",
+        label === "NONE" ? "Not labeled" : LABEL_TEXT[label],
+        "badge label-" + label
+      ));
+      if (claim.confidence) {
+        row.appendChild(element("span", claim.confidence + " confidence", "muted"));
+      }
+      row.appendChild(element("div", claim.claim_id + " — " + claim.text));
+
+      if (claim.reference_evidence) {
+        const evidence = element("p", "", "claim-detail");
+        evidence.append(element("b", "Reference says: "), claim.reference_evidence);
+        row.appendChild(evidence);
+      }
+      if (claim.explanation) {
+        const why = element("p", "", "claim-detail");
+        why.append(element("b", "Why: "), claim.explanation);
+        row.appendChild(why);
+      }
+      if (claim.annotation_error) {
+        row.appendChild(element("p", "Labeling failed: " + claim.annotation_error, "claim-detail"));
+      }
+      return row;
+    }
+
+    // Show only the claims of the selected label (or all)
+    function applyFilter() {
+      document.querySelectorAll(".claim").forEach((row) => {
+        row.classList.toggle(
+          "hidden",
+          activeFilter !== "ALL" && row.dataset.label !== activeFilter
+        );
+      });
+      document.querySelectorAll(".count").forEach((box) => {
+        box.classList.toggle("active", box.dataset.filter === activeFilter);
+      });
+    }
+
+    function renderCounts(allClaims) {
+      const counts = countLabels(allClaims);
+      const boxes = [
+        ["ALL", "All claims", allClaims.length],
+        ["SHARED", "Shared", counts.SHARED],
+        ["NEW", "New", counts.NEW],
+        ["CONFLICTING", "Conflicting", counts.CONFLICTING]
+      ];
+      if (counts.NONE) boxes.push(["NONE", "Not labeled", counts.NONE]);
+
+      const container = document.getElementById("counts");
+      container.replaceChildren();
+      boxes.forEach(([filter, name, value]) => {
+        const box = element("button", "", "count");
+        box.type = "button";
+        box.dataset.filter = filter;
+        box.append(element("strong", String(value)), name);
+        box.addEventListener("click", () => {
+          activeFilter = filter;
+          applyFilter();
+        });
+        container.appendChild(box);
+      });
     }
 
     form.addEventListener("submit", async (event) => {
@@ -137,7 +246,7 @@
       button.disabled = true;
       results.classList.add("hidden");
       status.textContent =
-        "Finding related articles and extracting claims. This may take a few minutes.";
+        "Finding related articles, extracting claims and labeling them. This may take a few minutes.";
 
       try {
         const response = await fetch("/api/analyze", {
@@ -168,6 +277,10 @@
           element("p", "Extracted claims: " + data.summary.total_claims)
         );
 
+        const allClaims = data.candidate_articles.flatMap((a) => a.claims);
+        activeFilter = "ALL";
+        renderCounts(allClaims);
+
         articles.replaceChildren();
 
         data.candidate_articles.forEach((article) => {
@@ -180,9 +293,15 @@
           link.rel = "noopener noreferrer";
           card.appendChild(link);
 
-          card.appendChild(
-            element("p", article.claim_count + " claims", "muted")
-          );
+          const c = countLabels(article.claims);
+          card.appendChild(element(
+            "p",
+            article.claim_count + " claims · " +
+              c.SHARED + " shared · " + c.NEW + " new · " +
+              c.CONFLICTING + " conflicting" +
+              (c.NONE ? " · " + c.NONE + " not labeled" : ""),
+            "muted article-counts"
+          ));
 
           if (article.extraction_status !== "success") {
             card.appendChild(
@@ -191,17 +310,13 @@
           }
 
           article.claims.forEach((claim) => {
-            card.appendChild(
-              element(
-                "div",
-                claim.claim_id + " — " + claim.text,
-                "claim"
-              )
-            );
+            card.appendChild(renderClaim(claim));
           });
 
           articles.appendChild(card);
         });
+
+        applyFilter();
 
         results.classList.remove("hidden");
         status.textContent = "Analysis complete.";
