@@ -35,11 +35,26 @@ class OmniLensPipeline:
                 "No related articles with usable text found."
             )
 
+        return self.analyze_selected(news_data, [a["article_id"] for a in candidates])
+
+    def analyze_selected(self, news_data, selected_ids, progress=None):
+        """Process only user-selected candidates, preserving original pipeline output."""
+        reference = news_data["reference_article"]
+        selected_set = set(selected_ids)
+        candidates = [a for a in news_data["candidate_articles"]
+                      if a["article_id"] in selected_set]
+        if not candidates:
+            raise ValueError("Select at least one related article.")
+        if progress:
+            progress("preparing", "Preparing the selected articles", 0, len(candidates))
+
         # Step 2: Extract claims from each candidate.
         processed_articles = []
         total_claims = 0
 
         for index, article in enumerate(candidates, start=1):
+            if progress:
+                progress("extracting", f"Extracting claims · article {index} of {len(candidates)}", index - 1, len(candidates))
             print(
                 f"Processing article {index}/{len(candidates)}: "
                 f"{article['title']}",
@@ -88,6 +103,9 @@ class OmniLensPipeline:
                     "claim_count": 0
                 })
 
+        if progress:
+            progress("extracting", "Claim extraction complete", len(candidates), len(candidates))
+
         # Step 3: Label every claim against the reference article.
         # All claims go in one batch so the cached reference is reused across articles.
         reference_text = clean_article_text(reference["text"])
@@ -97,10 +115,15 @@ class OmniLensPipeline:
             for claim in article["claims"]
         ]
         print(f"Labeling {len(all_claims)} claims with Claude...", flush=True)
+        if progress:
+            progress("classifying", f"Classifying {len(all_claims)} claims with Claude", 0, len(all_claims))
         self.annotator.annotate(
             {**reference, "text": reference_text},
             all_claims
         )
+
+        if progress:
+            progress("organizing", "Organizing categorized claims", len(all_claims), len(all_claims))
 
         label_counts = {
             label: sum(c["label"] == label for c in all_claims)

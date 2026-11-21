@@ -1,353 +1,822 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <title>OmniLens — News Claim Analysis</title>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b1220" />
+  <meta name="description" content="OmniLens compares news coverage and classifies factual claims as shared, new, or conflicting." />
+  <title>OmniLens · See the whole story</title>
   <style>
+    :root {
+      color-scheme: light;
+      --ink: #0c1525;
+      --subtle: #637087;
+      --accent: #6659e8;
+      --accent-dark: #4e42ce;
+      --accent-soft: #f0eeff;
+      --border: #e5e8f1;
+      --white: #ffffff;
+      --body: #f6f7fb;
+      --radius-xl: 24px;
+      --shadow: 0 18px 55px rgba(24, 32, 70, .075);
+    }
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--body); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    a { color: inherit; }
+    :focus-visible { outline: 3px solid #a6a0ff; outline-offset: 3px; }
+    .hidden { display: none !important; }
+    .sr-only { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+    .icon { display: inline-block; width: 20px; height: 20px; flex: 0 0 auto; vertical-align: middle; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+    .icon.sm { width: 16px; height: 16px; }
+    .icon.xs { width: 14px; height: 14px; }
+    .icon.lg { width: 24px; height: 24px; }
 
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont,
-                   "Segoe UI", sans-serif;
-      background: #f7f8fa;
-      color: #172033;
+    /* Navigation and landing */
+    .dark-shell { position: relative; overflow: hidden; background: #0a1120; color: white; isolation: isolate; }
+    .dark-shell:before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .3; background-image: linear-gradient(rgba(172,169,255,.085) 1px, transparent 1px), linear-gradient(90deg,rgba(172,169,255,.085) 1px, transparent 1px); background-size: 70px 70px; mask-image: linear-gradient(90deg, transparent, black 34%, black 80%, transparent); pointer-events: none; }
+    .ambient { position: absolute; z-index: -1; pointer-events: none; border-radius: 50%; filter: blur(95px); }
+    .ambient.one { width: 570px; height: 570px; top: -180px; right: -100px; background: rgba(94, 78, 200, .35); }
+    .ambient.two { width: 340px; height: 340px; bottom: -145px; left: 8%; background: rgba(25, 125, 155, .2); }
+    .nav { position: relative; z-index: 5; max-width: 1220px; margin: 0 auto; padding: 24px 36px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { display: flex; gap: 11px; align-items: center; text-decoration: none; font-size: 23px; font-weight: 780; letter-spacing: -.85px; }
+    .brand-mark { width: 37px; height: 37px; display: grid; place-items: center; border-radius: 13px; background: linear-gradient(145deg, #8d85ff, #5746c6); box-shadow: 0 6px 24px rgba(101, 89, 232, .38); }
+    .brand-mark .icon { width: 25px; height: 25px; stroke-width: 1.5; }
+    .nav-right { display: flex; align-items: center; gap: 27px; color: #c4cbe0; font-size: 13px; font-weight: 580; }
+    .nav-right a { text-decoration: none; transition: color .2s; }
+    .nav-right a:hover { color: #fff; }
+    .nav-pill { color: #e7e5ff; display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(153,151,255,.34); padding: 10px 14px; border-radius: 999px; background: rgba(110,105,197,.1); }
+    .nav-pill:before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #b8b1ff; box-shadow: 0 0 0 3px rgba(168,158,255,.15); }
+    .hero { max-width: 1220px; margin: 0 auto; min-height: 620px; padding: 70px 36px 100px; display: grid; grid-template-columns: 1.05fr .95fr; gap: 30px; align-items: center; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 9px; color: #b5adff; font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; }
+    .eyebrow .line { width: 24px; height: 1px; background: #8073d1; }
+    .hero h1 { max-width: 690px; font-size: clamp(48px, 5.1vw, 78px); line-height: 1.055; letter-spacing: -4.3px; font-weight: 720; margin: 25px 0 24px; }
+    .hero h1 .gradient-text { background: linear-gradient(110deg, #b6aaff, #e1c5f4 65%, #a7cfff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero-copy { color: #b3bed1; font-size: 17px; line-height: 1.82; max-width: 560px; margin: 0 0 33px; }
+    .hero-form { max-width: 635px; }
+    .form-shell { display: flex; gap: 10px; align-items: center; padding: 9px; border: 1px solid #50556a; border-radius: 18px; background: rgba(255,255,255,.97); box-shadow: 0 12px 50px rgba(0,0,0,.18); }
+    .url-input-wrap { display: flex; align-items: center; gap: 11px; color: #848da1; min-width: 0; padding: 0 10px; flex: 1; }
+    #url { width: 100%; min-width: 0; padding: 13px 1px; color: #162137; font-size: 14px; border: none; background: transparent; outline: none; }
+    #url::placeholder { color: #929aab; }
+    .analyze-button { flex: 0 0 auto; border: 0; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 16px 20px; background: linear-gradient(135deg, #7867f4, #5b4bdb); box-shadow: 0 4px 13px rgba(76,62,185,.25); color: #fff; font-size: 13px; font-weight: 780; transition: transform .2s, box-shadow .2s; }
+    .analyze-button:hover { transform: translateY(-1px); box-shadow: 0 7px 19px rgba(76,62,185,.37); }
+    .analyze-button:disabled { opacity: .75; transform: none; cursor: wait; }
+    .analyze-button .icon { width: 17px; height: 17px; }
+    .hint { display: flex; align-items: center; gap: 8px; color: #8996b0; font-size: 12px; margin: 14px 4px 0; line-height: 1.6; }
+    .hint .icon { width: 15px; height: 15px; color: #a9a7ff; }
+    .hero-visual { position: relative; min-height: 425px; display: grid; place-items: center; }
+    .orbit { position: absolute; border: 1px solid rgba(166, 156, 251, .14); border-radius: 50%; aspect-ratio: 1; }
+    .orbit.o1 { width: 400px; }
+    .orbit.o2 { width: 312px; border-style: dashed; border-color: rgba(166,156,251,.25); }
+    .orbit.o3 { width: 222px; border-color: rgba(166,156,251,.36); box-shadow: 0 0 68px rgba(108,85,241,.18); }
+    .orbit-dot { position: absolute; border-radius: 50%; background: #9488fb; box-shadow: 0 0 25px #8176ed; }
+    .orbit-dot.d1 { width: 9px; height: 9px; top: 88px; right: 102px; }
+    .orbit-dot.d2 { width: 6px; height: 6px; bottom: 89px; left: 94px; background: #73c7d9; }
+    .lens-core { width: 128px; height: 128px; background: radial-gradient(circle at 32% 25%, #988bff, #5946c6 62%, #2b2669); border-radius: 36px; display: grid; place-items: center; box-shadow: 0 25px 90px #3a327a89, inset 0 1px 1px #ffffff71; transform: rotate(-12deg); }
+    .lens-core .icon { width: 72px; height: 72px; stroke-width: 1.25; transform: rotate(12deg); }
+    .floating-note { position: absolute; border: 1px solid rgba(175,175,240,.24); background: rgba(23,33,57,.86); backdrop-filter: blur(15px); color: #e9eaf8; box-shadow: 0 20px 60px rgba(0,0,0,.24); border-radius: 13px; padding: 13px 16px; font-size: 12px; line-height: 1.45; }
+    .floating-note strong { display: block; font-size: 12px; margin: 3px 0; }
+    .floating-note span { display: block; color: #9fa9c3; font-size: 10px; letter-spacing: .6px; text-transform: uppercase; }
+    .floating-note .mini-icon { display: inline-flex; align-items: center; justify-content: center; width: 29px; height: 29px; margin-right: 8px; border-radius: 8px; background: #493d8f; color: #c8c0ff; vertical-align: middle; }
+    .floating-note.note-a { top: 31px; left: 10px; transform: rotate(-6deg); }
+    .floating-note.note-b { top: 115px; right: -4px; transform: rotate(7deg); }
+    .floating-note.note-c { bottom: 23px; left: 21px; transform: rotate(3deg); }
+    .hero-end { background: #0d1728; border-top: 1px solid rgba(255,255,255,.065); }
+    .hero-end-inner { max-width: 1220px; margin: auto; padding: 22px 36px; display: flex; justify-content: space-between; align-items: center; gap: 16px; color: #adb9cf; font-size: 12px; }
+    .hero-end .features-mini { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
+    .mini-feature { display: inline-flex; align-items: center; gap: 7px; }
+    .mini-feature .icon { color: #a89dff; width: 17px; height: 17px; }
+    .method { max-width: 1220px; margin: 0 auto; padding: 79px 36px 88px; }
+    .section-topline { color: #6b5ce0; font-size: 11px; font-weight: 810; letter-spacing: 1.8px; text-transform: uppercase; }
+    .method h2 { margin: 12px 0 9px; letter-spacing: -1.4px; font-size: clamp(29px,3vw,39px); }
+    .method-lead { font-size: 15px; color: #778298; max-width: 620px; line-height: 1.7; }
+    .method-grid { margin-top: 28px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .method-card { background: white; border: 1px solid #e5e8f1; padding: 28px 27px 27px; border-radius: 20px; box-shadow: 0 8px 32px #15225006; transition: transform .2s, box-shadow .2s; }
+    .method-card:hover { transform: translateY(-3px); box-shadow: 0 15px 40px #15225013; }
+    .step-top { display: flex; justify-content: space-between; align-items: start; }
+    .step-icon { width: 47px; height: 47px; display: grid; place-items: center; border-radius: 14px; background: #f0eeff; color: #685ce0; }
+    .step-n { color: #b1b7c7; font-size: 13px; font-weight: 800; }
+    .method-card h3 { font-size: 18px; letter-spacing: -.45px; margin: 24px 0 9px; }
+    .method-card p { color: #7e879a; font-size: 13px; line-height: 1.75; margin: 0; }
+
+    /* Working/status */
+    .status-card { max-width: 800px; margin: 32px auto 0; padding: 21px 24px; border-radius: 17px; display: flex; gap: 15px; align-items: center; background: #fff; border: 1px solid #e4e4ff; box-shadow: var(--shadow); }
+    .status-card .spin { color: #6659e8; animation: spin 1.1s linear infinite; }
+    .status-title { font-size: 14px; font-weight: 760; }
+    .status-detail { font-size: 12px; margin-top: 5px; color: #778298; line-height: 1.5; }
+    .status-card.error { background: #fff8f8; border-color: #ffd9dc; }
+    .status-card.error .spin { animation: none; color: #c34857; }
+    .status-card.error .status-title { color: #a53d48; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Analysis workspace */
+    .workspace { background: #f7f8fc; padding: 72px 0 100px; border-top: 1px solid #edf0f5; }
+    .workspace-inner { max-width: 1220px; margin: 0 auto; padding: 0 36px; }
+    .result-kicker { display: inline-flex; align-items: center; gap: 9px; font-size: 11px; letter-spacing: 1.6px; color: #6055cf; font-weight: 820; text-transform: uppercase; }
+    .result-kicker:before { content: ""; width: 8px; height: 8px; border-radius: 100%; background: #6cba9a; box-shadow: 0 0 0 4px #e3f5ed; }
+    .results-title-row { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin: 16px 0 30px; }
+    .results-title-row h2 { margin: 0 0 7px; font-size: clamp(32px, 3.5vw, 46px); letter-spacing: -2.15px; }
+    .results-title-row p { color: #778298; font-size: 14px; line-height: 1.6; margin: 0; }
+    .button-secondary { display: inline-flex; align-items: center; gap: 9px; padding: 13px 17px; border: 1px solid #dcdfeb; border-radius: 12px; background: white; color: #222e44; font-size: 12px; font-weight: 720; white-space: nowrap; transition: background .15s, transform .15s; }
+    .button-secondary:hover { background: #f7f6ff; transform: translateY(-1px); }
+    .button-secondary .icon { width: 16px; height: 16px; }
+    .reference-card { position: relative; overflow: hidden; padding: 30px 33px; background: #fff; border: 1px solid var(--border); border-radius: 21px; box-shadow: 0 10px 35px rgba(25,32,64,.04); }
+    .reference-card:before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #6a5bdf, #b8afff, #92d1d8); }
+    .reference-top { display: flex; align-items: center; gap: 10px; color: #847ab4; text-transform: uppercase; letter-spacing: 1.5px; font-size: 10px; font-weight: 850; }
+    .reference-top .icon { width: 17px; height: 17px; }
+    .reference-title-row { display: flex; justify-content: space-between; align-items: end; gap: 20px; }
+    .reference-title { font-family: Georgia, "Times New Roman", serif; font-size: clamp(23px, 2.55vw, 32px); letter-spacing: -.65px; font-weight: 600; line-height: 1.35; margin: 16px 0 11px; max-width: 790px; }
+    .reference-meta { font-size: 12px; color: #8994a7; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .reference-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: #b9c0cb; }
+    .reference-open { display: inline-flex; align-items: center; gap: 8px; color: #6255d7; text-decoration: none; font-weight: 700; font-size: 12px; white-space: nowrap; padding-bottom: 8px; }
+    .reference-open:hover { text-decoration: underline; }
+    .quick-stats { margin: 16px 0 29px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+    .stat { padding: 22px 25px; background: white; border: 1px solid var(--border); border-radius: 17px; display: flex; align-items: center; gap: 17px; }
+    .stat-icon { width: 45px; height: 45px; border-radius: 13px; display: grid; place-items: center; background: #f0eeff; color: #6658df; }
+    .stat:nth-child(2) .stat-icon { background: #edf8f8; color: #2d9296; }
+    .stat:nth-child(3) .stat-icon { background: #fff6eb; color: #c68f41; }
+    .stat-label { color: #8590a2; font-size: 11px; font-weight: 640; margin-bottom: 3px; }
+    .stat-value { color: #172136; font-size: 26px; font-weight: 760; letter-spacing: -.95px; line-height: 1.25; }
+    .stat-value.status-value { font-size: 16px; font-weight: 750; }
+    .explorer-header { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 20px; }
+    .explorer-header h3 { font-size: 22px; letter-spacing: -.65px; margin: 0 0 5px; }
+    .explorer-header p { font-size: 13px; color: #8994a7; margin: 0; }
+    .explorer { display: grid; grid-template-columns: 305px 1fr; gap: 17px; align-items: start; }
+    .source-panel, .claims-panel { background: white; border: 1px solid #e5e8f1; border-radius: 20px; overflow: hidden; box-shadow: 0 8px 30px rgba(29,36,64,.03); }
+    .source-panel { position: sticky; top: 20px; }
+    .panel-head { padding: 23px 24px 17px; border-bottom: 1px solid #eef0f5; }
+    .panel-title { text-transform: uppercase; letter-spacing: 1.3px; color: #8993a6; font-size: 10px; font-weight: 820; }
+    .source-list { padding: 12px; max-height: 640px; overflow-y: auto; }
+    .source-option { display: flex; align-items: center; gap: 12px; padding: 13px 11px; width: 100%; text-align: left; border: 1px solid transparent; background: transparent; border-radius: 11px; color: #263248; margin-bottom: 4px; transition: background .15s, border-color .15s; }
+    .source-option:hover { background: #f6f6fe; }
+    .source-option.active { background: #f0eeff; border-color: #e6e2ff; color: #4236ac; }
+    .source-symbol { width: 36px; height: 36px; border-radius: 10px; background: #eef1f7; display: grid; place-items: center; color: #78839b; font-weight: 780; font-size: 12px; flex: 0 0 auto; }
+    .source-option.active .source-symbol { background: #ddd8ff; color: #5d4acb; }
+    .source-copy { flex: 1; min-width: 0; }
+    .source-name { font-size: 12px; font-weight: 710; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .source-headline { font-size: 11px; color: #8b95a7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px; }
+    .source-count { font-size: 10px; color: #7e879e; background: #f0f2f7; padding: 5px 8px; border-radius: 8px; font-weight: 750; flex: 0 0 auto; }
+    .source-option.active .source-count { background: #dcd6ff; color: #5546ba; }
+    .claims-top { border-bottom: 1px solid #edf0f5; padding: 22px 25px; }
+    .claims-heading { display: flex; gap: 12px; justify-content: space-between; align-items: center; }
+    .claims-heading h4 { font-size: 19px; letter-spacing: -.5px; margin: 0 0 5px; }
+    .claims-caption { color: #8490a4; font-size: 12px; }
+    .source-visit { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-size: 11px; font-weight: 750; color: #6659d9; }
+    .source-visit:hover { text-decoration: underline; }
+    .claim-search-wrap { border: 1px solid #e6e9f1; border-radius: 11px; background: #f9fafc; display: flex; align-items: center; gap: 9px; margin-top: 20px; padding: 0 13px; color: #8490a3; }
+    #claim-search { min-width: 0; width: 100%; border: 0; outline: none; background: transparent; color: #17243a; padding: 14px 0; font-size: 12px; }
+    #claim-search::placeholder { color: #9aa4b3; }
+    .claim-counter { flex: 0 0 auto; font-size: 11px; font-weight: 650; color: #a0a7b5; }
+    .claim-list { padding: 0 25px; }
+    .claim-row { padding: 17px 0 18px; display: grid; grid-template-columns: 72px 1fr 33px; align-items: start; gap: 17px; border-bottom: 1px solid #edf0f4; }
+    .claim-row:last-child { border-bottom: 0; }
+    .claim-index { font-size: 10px; color: #8576d9; font-weight: 790; padding-top: 4px; letter-spacing: .1px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .claim-text { font-size: 13px; line-height: 1.75; color: #344056; margin: 0; overflow-wrap: anywhere; }
+    .claim-source { margin-top: 6px; font-size: 10px; color: #9aa4b5; }
+    .copy-claim { border: 1px solid transparent; background: transparent; color: #9da5b5; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; }
+    .copy-claim:hover { background: #f1eeff; color: #685ad8; }
+    .load-more-wrap { padding: 20px 25px 24px; border-top: 1px solid #f0f1f5; display: flex; justify-content: center; }
+    .load-more { border: 1px solid #dddff0; background: #fff; color: #6256d3; display: flex; align-items: center; gap: 9px; border-radius: 10px; padding: 12px 19px; font-size: 12px; font-weight: 760; }
+    .load-more:hover { background: #f7f5ff; }
+    .empty-result { padding: 55px 25px; color: #8993a4; font-size: 13px; text-align: center; line-height: 1.65; }
+    .empty-result .icon { margin-bottom: 12px; color: #a39bdc; width: 29px; height: 29px; }
+    .workspace-foot { color: #959eb0; font-size: 11px; text-align: center; margin: 31px auto 0; line-height: 1.65; }
+    .footer { padding: 30px 36px; background: #0d1627; color: #96a3ba; }
+    .footer-inner { max-width: 1150px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 15px; font-size: 11px; }
+    .footer .brand { font-size: 16px; color: #f5f5ff; }
+    .footer .brand-mark { width: 26px; height: 26px; border-radius: 8px; }
+    .footer .brand-mark .icon { width: 20px; height: 20px; }
+    .toast { position: fixed; z-index: 99; bottom: 24px; left: 50%; transform: translate(-50%, 30px); padding: 12px 18px; border-radius: 12px; color: #fff; background: #222b40; box-shadow: 0 10px 35px #111b326b; opacity: 0; pointer-events: none; transition: opacity .22s, transform .22s; font-size: 12px; font-weight: 690; }
+    .toast.show { opacity: 1; transform: translate(-50%,0); }
+
+    @media (max-width: 1030px) {
+      .hero { grid-template-columns: 1fr .72fr; }
+      .hero h1 { font-size: 59px; letter-spacing: -3px; }
+      .hero-visual { transform: scale(.83); }
+      .explorer { grid-template-columns: 255px 1fr; }
+      .quick-stats { gap: 10px; }
+      .stat { padding: 19px 16px; }
     }
-
-    .container {
-      max-width: 950px;
-      margin: 60px auto;
-      padding: 0 24px;
+    @media (max-width: 760px) {
+      .nav { padding: 21px 22px; }
+      .nav-right a:not(.nav-pill) { display: none; }
+      .hero { min-height: auto; display: block; padding: 73px 22px 79px; }
+      .hero h1 { font-size: clamp(46px,11vw,66px); letter-spacing: -2.5px; }
+      .hero-copy { font-size: 15px; }
+      .hero-visual { display: none; }
+      .hero-end-inner { padding: 20px 22px; }
+      .hero-end-inner > span { display: none; }
+      .method { padding: 55px 22px 65px; }
+      .method-grid { grid-template-columns: 1fr; }
+      .method-card { padding: 22px; }
+      .workspace { padding-top: 50px; }
+      .workspace-inner { padding: 0 18px; }
+      .quick-stats { grid-template-columns: repeat(2, 1fr); }
+      .stat:nth-child(3) { grid-column: span 2; }
+      .explorer { grid-template-columns: minmax(0,1fr); }
+      .source-panel { position: static; }
+      .source-list { display: flex; overflow-x: auto; padding: 10px; max-height: none; gap: 6px; }
+      .source-option { min-width: 185px; max-width: 235px; margin: 0; }
+      .source-headline { max-width: 126px; }
+      .results-title-row { align-items: start; }
+      .reference-title-row { display: block; }
+      .reference-open { padding: 13px 0 0; }
+      .footer { padding: 27px 22px; }
     }
-
-    h1 {
-      font-size: 36px;
-      margin-bottom: 8px;
+    @media (max-width: 480px) {
+      .nav-right .nav-pill { display: none; }
+      .hero h1 { font-size: 44px; }
+      .form-shell { flex-direction: column; align-items: stretch; padding: 9px; }
+      .url-input-wrap { padding: 0 11px; }
+      .analyze-button { width: 100%; }
+      .hero-end .features-mini { gap: 11px 19px; }
+      .results-title-row { flex-direction: column; }
+      .reference-card { padding: 22px; }
+      .quick-stats { grid-template-columns: 1fr 1fr; }
+      .stat { gap: 8px; padding: 13px; }
+      .stat-icon { width: 35px; height: 35px; border-radius: 10px; }
+      .stat-icon .icon { width: 18px; }
+      .stat-value { font-size: 22px; }
+      .claims-top { padding: 20px 16px; }
+      .claim-list { padding: 0 16px; }
+      .claim-row { grid-template-columns: 65px 1fr 27px; gap: 9px; }
+      .claim-text { font-size: 12px; }
+      .footer-inner { flex-direction: column; align-items: start; }
     }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *,*:before,*:after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 
-    .subtitle { color: #667085; }
+    /* Classification workspace: preserve the original OmniLens brand */
+    .demo-banner { border: 1px solid #e4c988; color: #755418; background: #fff7e1; border-radius: 11px; padding: 12px 16px; margin: 14px 0; font-size: 12px; font-weight: 700; }
+    .export-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
+    .label-overview { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; margin: -6px 0 29px; }
+    .overview-card { padding: 18px 21px; border-radius: 17px; border: 1px solid #e5e8f1; background: #fff; box-shadow: 0 8px 28px #15225005; display: flex; align-items: center; gap: 13px; }
+    .overview-dot { width: 11px; height: 11px; border-radius: 50%; flex: 0 0 auto; background: var(--accent); box-shadow: 0 0 0 5px #f0eeff; }
+    .overview-card.new .overview-dot { background: #459575; box-shadow: 0 0 0 5px #e4f6ef; }
+    .overview-card.conflicting .overview-dot { background: #db757d; box-shadow: 0 0 0 5px #fff0f0; }
+    .overview-card.shared .overview-dot { background: #7664d8; box-shadow: 0 0 0 5px #efeafd; }
+    .overview-count { font-size: 27px; font-weight: 830; line-height: 1.15; letter-spacing: -.8px; }
+    .overview-label { color: #7b879c; font-size: 12px; margin-top: 4px; }
+    .explorer { grid-template-columns: minmax(0,1fr); gap: 19px; }
+    .source-panel { position: static; }
+    .source-panel-head { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+    .source-panel-head p { color: #8490a2; font-size: 12px; margin: 7px 0 0; }
+    .view-all-button { color: #6257d5; border: 1px solid #e7e3f5; border-radius: 10px; padding: 10px 14px; background: #f8f7ff; font-weight: 750; font-size: 12px; }
+    .view-all-button:hover, .view-all-button.active { background: #ebe8ff; }
+    .source-list { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; overflow: visible; max-height: none; padding: 17px; }
+    .source-option { display: flex; flex-direction: column; align-items: stretch; min-height: 168px; gap: 11px; margin: 0; padding: 17px; border: 1px solid #e5e8f0; background: #fff; border-radius: 15px; transition: border-color .2s, transform .2s, box-shadow .2s; }
+    .source-option:hover { background: #fcfbff; border-color: #c9c0ff; transform: translateY(-2px); box-shadow: 0 8px 22px #6a60c014; }
+    .source-option.active { background: #f6f4ff; border-color: #8e83f3; box-shadow: 0 0 0 2px #aaa1fc33; color: #352890; }
+    .source-card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .source-symbol { font-size: 11px; font-weight: 800; height: 31px; width: 31px; border-radius: 9px; }
+    .source-name { font-size: 12px; font-weight: 800; letter-spacing: -.1px; white-space: normal; }
+    .source-headline { font-size: 13px; line-height: 1.5; font-weight: 720; color: #273146; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; margin: 0; flex: 1; }
+    .source-option.active .source-headline { color: #342c78; }
+    .article-count { color: #939bad; font-size: 11px; white-space: nowrap; }
+    .source-labels { display: flex; gap: 5px; flex-wrap: wrap; }
+    .label-chip { border: 1px solid transparent; border-radius: 8px; padding: 5px 8px; font-size: 10px; font-weight: 780; line-height: 1.2; white-space: nowrap; }
+    .label-chip.new { color: #147352; background: #e8f8f0; }
+    .label-chip.shared { color: #5945c1; background: #eeebff; }
+    .label-chip.conflicting { color: #b24c56; background: #ffeff0; }
+    .label-chip.unlabeled { color: #68768a; background: #eef1f5; }
+    .source-empty { grid-column: 1/-1; color: #8390a5; padding: 25px; text-align: center; }
+    .label-tabs { display: flex; gap: 8px; flex-wrap: wrap; padding: 16px 24px 0; }
+    .label-tab { background: #f7f8fc; color: #68758b; border: 1px solid #e8eaf2; border-radius: 10px; padding: 9px 13px; font-weight: 760; font-size: 12px; display: inline-flex; gap: 8px; align-items: center; }
+    .label-tab:hover { border-color: #cfc8f7; }
+    .label-tab.active { color: #5342bd; background: #f0edff; border-color: #b9b0f8; }
+    .label-tab.new.active { color: #157852; background: #e7f8ef; border-color: #b5e9d0; }
+    .label-tab.conflicting.active { color: #b14756; background: #fff0f1; border-color: #f0c2c8; }
+    .label-tab.shared.active { color: #5945c1; background: #eeebff; border-color: #c7bdf9; }
+    .label-tab small { font-size: 10px; color: inherit; opacity: .8; }
+    .claim-row { grid-template-columns: minmax(0,1fr) 32px; gap: 12px; border: 1px solid #e9eaf1; border-left: 3px solid #c8cee0; border-radius: 12px; margin: 14px 0; padding: 17px 17px 16px; background: #fff; }
+    .claim-row.new { border-left-color: #3d9c77; }
+    .claim-row.shared { border-left-color: #7b6be2; }
+    .claim-row.conflicting { border-left-color: #df727b; }
+    .claim-list { padding: 1px 24px 10px; }
+    .claim-meta-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 9px; }
+    .claim-index { font-size: 10px; padding: 0; }
+    .claim-confidence { font-size: 10px; color: #949fb2; margin-left: auto; }
+    .claim-text { color: #253147; font-size: 13px; line-height: 1.65; font-weight: 560; }
+    .claim-source { margin-top: 7px; }
+    .claim-details { margin-top: 12px; border-top: 1px solid #edf0f5; padding-top: 10px; }
+    .claim-details summary { color: #5c53ba; font-weight: 750; font-size: 11px; cursor: pointer; }
+    .detail-item { margin-top: 12px; }
+    .detail-item b { font-size: 10px; letter-spacing: .5px; text-transform: uppercase; display: block; color: #78849a; margin-bottom: 5px; }
+    .detail-item p { font-size: 12px; color: #556174; line-height: 1.65; margin: 0; }
+    .status-failed { color: #b95c62; font-size: 11px; margin: 8px 0 0; }
+    @media(max-width:980px) { .source-list { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+    @media(max-width:760px) { .source-list { display: grid; grid-template-columns: 1fr; overflow: visible; max-height: none; gap: 9px; } .source-option { min-width: 0; max-width: none; min-height: 135px; } .source-headline { max-width: none; } .label-overview { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; } .overview-card { padding: 13px; } .overview-count { font-size: 21px; } .export-actions { width: 100%; } .claim-list { padding: 1px 15px 10px; } .label-tabs { padding: 15px 15px 0; } }
+    @media(max-width:490px) { .label-overview { grid-template-columns: 1fr; } .overview-card { padding: 13px 17px; } .source-panel-head { align-items: start; } .claim-row { grid-template-columns: minmax(0,1fr) 30px; } .export-actions button { flex: 1; } }
 
-    .search {
-      display: flex;
-      gap: 12px;
-      margin: 30px 0;
-    }
+    /* Guided workflow: same navy/violet OmniLens visual language */
+    .entry-modes { display: flex; gap: 7px; margin: 15px 0 0; }
+    .entry-mode { border: 1px solid rgba(176,174,241,.3); background: rgba(255,255,255,.055); border-radius: 10px; padding: 10px 14px; color: #aebbd6; font-weight: 720; font-size: 12px; }
+    .entry-mode.active { border-color: #9587ff; background: rgba(113,94,229,.26); color: #fff; }
+    .reference-text-wrap { margin-top: 14px; }
+    .reference-text-wrap label { display:block; font-weight: 750; font-size: 12px; color:#e3ddff; margin: 0 0 8px; }
+    .reference-text-wrap textarea { width:100%; resize:vertical; border-radius:13px; border:1px solid #595375; padding:14px; background:#131d31; color:#fff; font:inherit; font-size:13px; line-height:1.65; }
+    .reference-text-wrap p {color:#a3acc3; font-size:11px; line-height:1.65;}
+    .flow-step { padding:64px 25px 84px; background:linear-gradient(180deg,#f7f7fd,#f6f7fb); min-height:520px; }
+    .flow-container { max-width:1000px; margin:0 auto; }
+    .flow-container.flow-narrow {max-width:720px;}
+    .flow-eyebrow {color:#6c5ade; font-size:11px; font-weight:850; letter-spacing:1.6px; margin:0 0 12px;}
+    .flow-heading h2 {font-size:clamp(30px,4vw,44px); letter-spacing:-1.6px; margin:0 0 10px; line-height:1.15;}
+    .flow-heading p {color:#738096; font-size:14px; line-height:1.7; margin:0 0 27px;}
+    .flow-reference-card {max-width:760px; padding:30px 32px; border:1px solid #e5e5f1; border-radius:22px; background:#fff; box-shadow:var(--shadow);}
+    .flow-reference-card h3 {font-size:clamp(21px,3vw,29px); line-height:1.3; letter-spacing:-.8px; margin:20px 0 9px;}
+    .flow-meta {color:#7f8ba1; font-size:12px; font-weight:650; margin:0 0 14px;}
+    .flow-excerpt {font-size:13px; line-height:1.8; color:#5f6c83; padding:15px 0; border-top:1px solid #edf0f5; border-bottom:1px solid #edf0f5; max-height:180px; overflow-y:auto;}
+    .flow-link {display:inline-flex; align-items:center; gap:8px; color:#6556d6; font-size:12px; font-weight:750; text-decoration:none;}
+    .flow-actions {display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:25px;}
+    .flow-primary {display:inline-flex; align-items:center; gap:9px; border:0; color:white; background:linear-gradient(135deg,#7867f4,#5948d6); border-radius:11px; font-weight:770; font-size:13px; padding:14px 23px; box-shadow:0 5px 15px #5b4bdb30;}
+    .flow-primary:hover {filter:brightness(1.06); transform:translateY(-1px);}
+    .flow-primary:disabled {background:#b9bdd1;cursor:not-allowed;box-shadow:none;transform:none;}
+    .flow-reference-mini {background:#edeeff; border:1px solid #e0ddf8; border-radius:14px; padding:17px 19px; display:flex; justify-content:space-between; align-items:center; color:#6252cc; gap:15px; }
+    .flow-reference-mini span {display:block; font-size:10px; font-weight:850; letter-spacing:1px; margin-bottom:7px;}
+    .flow-reference-mini strong {display:block; color:#26314b; font-size:13px; line-height:1.4;}
+    .flow-reference-mini small {display:block;color:#7983a2; margin-top:5px;}
+    .picker-toolbar {display:flex; justify-content:space-between; align-items:center; gap:12px; margin:23px 0 12px;}
+    .picker-toolbar strong {font-size:13px; font-weight:760;color:#29334b;}
+    .picker-toolbar>div {display:flex; gap:15px;}
+    .text-action {color:#6454d8;border:0;background:transparent;font-weight:760;font-size:12px;}
+    .text-action:hover {text-decoration:underline;}
+    .picker-list {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;}
+    .picker-card {display:block; position:relative; cursor:pointer; min-height:165px; border:1px solid #e2e6f1; border-radius:17px; background:white; padding:18px; box-shadow:0 6px 24px #0c15250a; transition:border-color .15s,box-shadow .15s,transform .15s;}
+    .picker-card:hover {border-color:#aea5ef;transform:translateY(-2px);}
+    .picker-card.selected {background:#faf9ff;border-color:#9d90ff;box-shadow:0 0 0 2px #a99cfa26;}
+    .picker-card-head {display:flex; justify-content:space-between; align-items:center; gap:8px; margin:0 0 14px;}
+    .picker-card-head strong {font-size:11px; color:#6858d2; text-transform:uppercase; letter-spacing:.6px;}
+    .picker-card-head input {accent-color:#6659e8;width:18px;height:18px;flex:0 0 auto;}
+    .picker-card h3 {font-size:15px;line-height:1.5;letter-spacing:-.3px; margin:0 0 12px; color:#222c42;}
+    .picker-card-footer {display:flex;align-items:center;justify-content:space-between;gap:7px;flex-wrap:wrap;color:#8692a4;font-size:11px;}
+    .picker-card-footer a {color:#6758d9;text-decoration:none;font-weight:760;}
+    .flow-helper {color:#8a94a7;font-size:12px;line-height:1.65;margin-top:20px;}
+    .flow-progress-card {border:1px solid #e4e5f3;border-radius:22px;background:#fff;box-shadow:var(--shadow);padding:30px;}
+    .progress-top {display:flex;gap:15px;align-items:center;}
+    .progress-top strong {font-size:16px;color:#273049;}
+    .progress-top p {font-size:12px;color:#79869b;margin:6px 0 0;}
+    .progress-pulse {width:19px;height:19px;flex:0 0 auto;border:4px solid #c4bafd;border-top-color:#6958e8;border-radius:50%;animation:progressspin .9s linear infinite;}
+    @keyframes progressspin {to {transform:rotate(360deg)}}
+    .progress-track {margin:28px 0 22px;background:#eeeff7;height:8px;overflow:hidden;border-radius:999px;}
+    #progress-fill {background:linear-gradient(90deg,#6957e9,#b4a3ff);width:8%;height:100%;border-radius:999px;transition:width .35s;}
+    .progress-stages {padding:0;list-style:none;display:grid;gap:10px;}
+    .progress-stages li {font-size:13px;color:#a0a9b8;padding:12px 15px 12px 42px; border-radius:11px; background:#f8f9fc; position:relative;}
+    .progress-stages li:before {content:'○';position:absolute;left:16px;font-size:15px;top:10px;}
+    .progress-stages li.current {background:#f0edff;color:#5749cb;font-weight:760;}
+    .progress-stages li.current:before {content:'●';}
+    .progress-stages li.done {color:#277d66;background:#f0faf5;}
+    .progress-stages li.done:before {content:'✓';}
+    @media(max-width:700px) {.flow-step{padding:46px 18px 65px;}.flow-reference-card{padding:23px;}.picker-list{grid-template-columns:1fr;}.picker-card{min-height:unset;}.flow-actions>*{flex:1;justify-content:center;}.picker-toolbar{align-items:flex-start;}.flow-progress-card{padding:22px;}}
 
-    input {
-      flex: 1;
-      padding: 15px;
-      border: 1px solid #d0d5dd;
-      border-radius: 8px;
-      font-size: 15px;
-      min-width: 0;
-    }
-
-    button {
-      background: #172033;
-      color: white;
-      border: 0;
-      padding: 14px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    button:disabled {
-      opacity: .5;
-      cursor: wait;
-    }
-
-    .card {
-      background: white;
-      border: 1px solid #e4e7ec;
-      border-radius: 12px;
-      padding: 22px;
-      margin: 16px 0;
-    }
-
-    .muted { color: #667085; }
-    .claim { padding: 12px 0; border-bottom: 1px solid #eee; }
-    .claim:last-child { border-bottom: 0; }
-    .hidden { display: none; }
-    a { color: #2454a6; overflow-wrap: anywhere; }
-
-    /* Label counts and badges */
-    .counts { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 18px; }
-    .count {
-      border: 1px solid #e4e7ec; border-radius: 10px;
-      padding: 10px 16px; min-width: 120px; background: #fff;
-      cursor: pointer; color: #172033; text-align: left;
-    }
-    .count strong { display: block; font-size: 24px; }
-    .count.active { outline: 2px solid #172033; }
-    .article-counts { margin: 6px 0 4px; }
-    .badge {
-      display: inline-block; font-size: 12px; font-weight: 600;
-      padding: 2px 8px; border-radius: 999px; margin-right: 8px;
-    }
-    .label-SHARED { background: #e7f6ec; color: #1f7a3d; }
-    .label-NEW { background: #e8effc; color: #2454a6; }
-    .label-CONFLICTING { background: #fdecea; color: #b42318; }
-    .label-NONE { background: #f2f4f7; color: #667085; }
-    .claim-detail { font-size: 14px; color: #475467; margin: 6px 0 0; }
-    .claim-detail b { color: #172033; font-weight: 600; }
-
-    @media (max-width: 600px) {
-      .search { flex-direction: column; }
-    }
+    .export-choice {display:grid;grid-template-columns:48px 1fr auto;align-items:center;gap:18px;background:white;border:1px solid #e5e8f1;border-radius:18px;padding:22px;margin-bottom:13px;box-shadow:0 8px 25px #17224208;}
+    .export-choice-icon {display:grid;place-items:center;width:44px;height:44px;border-radius:13px;color:#6657df;background:#eeedff;}
+    .export-choice-icon.new {color:#26856b;background:#e7f8ee;}
+    .export-choice h3 {font-size:15px;letter-spacing:-.3px;margin:0 0 6px;color:#253149;}
+    .export-choice p {margin:0;color:#818da0;line-height:1.6;font-size:12px;}
+    .export-choice .flow-primary, .export-choice .button-secondary {white-space:nowrap;}
+    @media(max-width:700px){.export-choice{grid-template-columns:42px 1fr;gap:12px;}.export-choice button{grid-column:1/-1;justify-content:center;}}
   </style>
 </head>
-
 <body>
-  <div class="container">
-    <h1>OmniLens</h1>
+  <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="3.3"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M4 12h16m-7-7 7 7-7 7"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 .1l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7M14 11a5 5 0 0 0-7-.1l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></symbol>
+    <symbol id="i-file-text" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.7" cy="10.7" r="7.2"/><path d="m16.3 16.3 4.4 4.4"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6m0-6-9 9"/><path d="M20 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h6"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 2.1 7.9L22 12l-7.9 2.1L12 22l-2.1-7.9L2 12l7.9-2.1L12 2Z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol>
+    <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 1.5"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-loader" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10"/></symbol>
+    <symbol id="i-retry" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
+  </svg>
 
-    <p class="subtitle">
-      Discover related news coverage, extract factual claims and label each one
-      as shared with, new to, or conflicting with the reference article.
-    </p>
-
-    <form id="form" class="search">
-      <input
-        id="url"
-        type="url"
-        placeholder="Paste a news article URL..."
-        required
-      >
-
-      <button id="analyze" type="submit">
-        Analyze Article
-      </button>
-    </form>
-
-    <p id="status" class="muted"></p>
-
-    <div id="results" class="hidden">
-      <div class="card">
-        <h2>Analysis Summary</h2>
-        <div id="summary"></div>
-        <div id="counts" class="counts"></div>
-        <button id="download" type="button">
-          Download JSON
-        </button>
+  <div class="dark-shell" id="top">
+    <div class="ambient one"></div><div class="ambient two"></div>
+    <header class="nav">
+      <a class="brand" href="#top" aria-label="OmniLens home"><span class="brand-mark"><svg class="icon"><use href="#i-eye"/></svg></span>OmniLens</a>
+      <nav class="nav-right" aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#workspace" id="nav-results" class="hidden">Results</a></nav>
+    </header>
+    <main class="hero">
+      <div>
+        <div class="eyebrow"><span class="line"></span> MULTI-SOURCE NEWS INTELLIGENCE</div>
+        <h1>There's more to <span class="gradient-text">every story.</span></h1>
+        <p class="hero-copy">Start with one article. Compare related reporting, discover what other sources add, and see which claims agree or conflict.</p>
+        <form class="hero-form" id="form">
+          <label class="sr-only" for="url">News article URL</label>
+          <div class="form-shell">
+            <div class="url-input-wrap"><svg class="icon"><use href="#i-link"/></svg><input id="url" type="url" inputmode="url" placeholder="Paste a news article URL…" autocomplete="url" required aria-describedby="url-hint" /></div>
+            <button type="submit" class="analyze-button" id="analyze">Find my story <svg class="icon"><use href="#i-arrow-right"/></svg></button>
+          </div>
+          <div class="entry-modes" role="group" aria-label="Reference input mode">
+              <button type="button" id="mode-url" class="entry-mode active" aria-pressed="true">Paste article URL</button>
+              <button type="button" id="mode-text" class="entry-mode" aria-pressed="false">Paste article text</button>
+            </div>
+            <div class="reference-text-wrap hidden" id="reference-text-wrap"><label for="reference-text">Reference article text</label><textarea id="reference-text" rows="5" placeholder="Paste the article body here. Include a source URL above so OmniLens can find its related news event."></textarea><p>Article text replaces the fetched body for comparison. A public URL is still required for news discovery.</p></div>
+          <p class="hint" id="url-hint"><svg class="icon"><use href="#i-circle"/></svg>Start with an article. Choose your sources. Explore the differences.</p>
+        </form>
       </div>
-
-      <div id="articles"></div>
-    </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="orbit o1"></div><div class="orbit o2"></div><div class="orbit o3"></div><span class="orbit-dot d1"></span><span class="orbit-dot d2"></span>
+        <div class="lens-core"><svg class="icon"><use href="#i-eye"/></svg></div>
+        <div class="floating-note note-a"><span>01 · Begin with</span><strong>One article</strong></div>
+        <div class="floating-note note-b"><span>02 · Discover</span><strong>Related perspectives</strong></div>
+        <div class="floating-note note-c"><span>03 · Uncover</span><strong>Claim-level differences</strong></div>
+      </div>
+    </main>
   </div>
 
+  <div id="status" class="status-card hidden" role="status" aria-live="polite">
+    <svg id="status-icon" class="icon lg spin"><use href="#i-loader"/></svg><div><div id="status-title" class="status-title">Analyzing your story</div><div id="status-detail" class="status-detail">Discovering related coverage and extracting claims…</div></div>
+  </div>
+
+  <section class="flow-step hidden" id="step-confirm" aria-labelledby="confirm-heading">
+    <div class="flow-container"><div class="flow-eyebrow">STEP 02 / 05 · CONFIRM REFERENCE</div><div class="flow-heading"><h2 id="confirm-heading">Is this the right story?</h2><p>Review your starting article.</p></div>
+    <div class="flow-reference-card"><div class="reference-top"><svg class="icon"><use href="#i-file-text"/></svg> YOUR REFERENCE ARTICLE</div><h3 id="confirm-title"></h3><p id="confirm-meta" class="flow-meta"></p><p id="confirm-excerpt" class="flow-excerpt"></p><a id="confirm-link" target="_blank" rel="noopener noreferrer" class="flow-link">Open source article <svg class="icon sm"><use href="#i-external"/></svg></a></div>
+    <div class="flow-actions"><button type="button" class="button-secondary" id="change-reference">Change article</button><button type="button" class="flow-primary" id="confirm-reference">Yes, find related coverage <svg class="icon sm"><use href="#i-arrow-right"/></svg></button></div>
+    </div>
+  </section>
+
+  <section class="flow-step hidden" id="step-pick" aria-labelledby="pick-heading">
+    <div class="flow-container"><div class="flow-eyebrow">STEP 03 / 05 · CHOOSE SOURCES</div><div class="flow-heading"><h2 id="pick-heading">Choose the voices to compare.</h2><p>Select the articles you want to compare.</p></div>
+    <div class="flow-reference-mini"><div><span>YOUR REFERENCE</span><strong id="pick-reference-title"></strong><small id="pick-reference-source"></small></div><svg class="icon lg"><use href="#i-check"/></svg></div>
+    <div class="picker-toolbar"><strong id="picker-count">0 articles selected</strong><div><button type="button" class="text-action" id="select-all">Select all</button><button type="button" class="text-action" id="clear-all">Clear all</button></div></div>
+    <div id="picker-list" class="picker-list"></div>
+    <div class="flow-actions"><button type="button" class="button-secondary" id="back-to-confirm">Back</button><button type="button" id="compare-selected" class="flow-primary">Compare selected articles <svg class="icon sm"><use href="#i-arrow-right"/></svg></button></div>
+    
+    </div>
+  </section>
+
+  <section class="flow-step hidden" id="step-progress" aria-labelledby="progress-heading">
+    <div class="flow-container flow-narrow"><div class="flow-eyebrow">STEP 04 / 05 · ANALYSIS</div><div class="flow-heading"><h2 id="progress-heading">Reading between the lines.</h2><p>Comparing your selected articles.</p></div>
+    <div class="flow-progress-card"><div class="progress-top"><span class="progress-pulse"></span><div><strong id="progress-current">Preparing your comparison</strong><p id="progress-detail">Starting…</p></div></div><div class="progress-track"><div id="progress-fill"></div></div><ol id="progress-stages" class="progress-stages"><li data-stage="preparing">Preparing articles</li><li data-stage="extracting">Extracting claims</li><li data-stage="classifying">Comparing claims</li><li data-stage="organizing">Organizing classified results</li></ol></div></div>
+  </section>
+
+  <section class="workspace hidden" id="workspace" aria-labelledby="workspace-title">
+    <div class="workspace-inner">
+      <div class="result-kicker">STEP 05 / 05 · ANALYSIS COMPLETE</div>
+      <div id="demo-banner" class="demo-banner hidden">DESIGN PREVIEW · Example results only. No backend analysis was performed.</div>
+      <div class="results-title-row"><div><h2 id="workspace-title">Your coverage brief.</h2><p>Compare what each source reports.</p></div><div class="export-actions"><button id="open-export" type="button" class="flow-primary"><svg class="icon sm"><use href="#i-download"/></svg> Export results</button></div></div>
+      <section class="reference-card" aria-label="Reference article">
+        <div class="reference-top"><svg class="icon"><use href="#i-file-text"/></svg> Your starting article</div>
+        <div class="reference-title-row"><div><h3 id="reference-title" class="reference-title"></h3><div id="reference-meta" class="reference-meta"></div></div><a id="reference-open" class="reference-open hidden" target="_blank" rel="noopener noreferrer">View original <svg class="icon sm"><use href="#i-external"/></svg></a></div>
+      </section>
+      <div class="quick-stats">
+        <div class="stat"><span class="stat-icon"><svg class="icon lg"><use href="#i-layers"/></svg></span><div><div class="stat-label">Related articles</div><div class="stat-value" id="stat-articles">—</div></div></div>
+        <div class="stat"><span class="stat-icon"><svg class="icon lg"><use href="#i-file-text"/></svg></span><div><div class="stat-label">Extracted claims</div><div class="stat-value" id="stat-claims">—</div></div></div>
+        <div class="stat"><span class="stat-icon"><svg class="icon lg"><use href="#i-check"/></svg></span><div><div class="stat-label">Processing</div><div class="stat-value status-value" id="stat-processed">—</div></div></div>
+      </div>
+      <section id="label-overview" class="label-overview" aria-label="Claim classification overview"></section>
+      <div class="explorer-header"><div><h3>Compare related articles</h3><p>Choose an article to explore its claims.</p></div><button type="button" id="back-to-picker" class="button-secondary">Change sources</button><button type="button" id="new-search" class="button-secondary"><svg class="icon"><use href="#i-retry"/></svg> New analysis</button></div>
+      <div class="explorer">
+        <section class="source-panel" aria-label="Related article sources">
+          <div class="panel-head source-panel-head"><div><div class="panel-title">RELATED COVERAGE</div></div><button type="button" class="view-all-button" id="view-all">View all articles</button></div>
+          <div id="source-list" class="source-list"></div>
+        </section>
+        <section class="claims-panel" id="claims-panel" aria-label="Classified claims">
+          <div class="claims-top"><div class="claims-heading"><div><h4 id="claims-heading">All extracted claims</h4><div id="claims-caption" class="claims-caption"></div></div><a id="source-visit" class="source-visit hidden" target="_blank" rel="noopener noreferrer">Read source <svg class="icon sm"><use href="#i-external"/></svg></a></div><label for="claim-search" class="sr-only">Search extracted claims</label><div class="claim-search-wrap"><svg class="icon sm"><use href="#i-search"/></svg><input id="claim-search" type="search" placeholder="Search claims by keyword…" autocomplete="off" /><span id="claim-counter" class="claim-counter"></span></div></div>
+          <div id="label-tabs" class="label-tabs" role="group" aria-label="Filter claims by classification"></div>
+          <div id="claim-list" class="claim-list"></div>
+          <div class="load-more-wrap hidden" id="load-more-wrap"><button class="load-more" id="load-more" type="button">Show more claims <svg class="icon sm"><use href="#i-chevron"/></svg></button></div>
+        </section>
+      </div>
+      
+    </div>
+  </section>
+
+  <section class="flow-step hidden" id="step-export" aria-labelledby="export-heading">
+    <div class="flow-container flow-narrow"><div class="flow-eyebrow">YOUR RESEARCH · EXPORT</div><div class="flow-heading"><h2 id="export-heading">Take the results with you.</h2><p>Choose how you want to save your results.</p></div>
+    <div class="export-choice"><div class="export-choice-icon new"><svg class="icon lg"><use href="#i-spark"/></svg></div><div><h3>New and Conflicting claims</h3><p>Only New and Conflicting claims.</p></div><button id="download-priority" type="button" class="flow-primary">Download CSV</button></div>
+    <div class="export-choice"><div class="export-choice-icon"><svg class="icon lg"><use href="#i-layers"/></svg></div><div><h3>All classifications</h3><p>All claims, labels, and supporting details.</p></div><button id="download-csv" type="button" class="button-secondary">Download CSV</button></div>
+    <div class="export-choice"><div class="export-choice-icon"><svg class="icon lg"><use href="#i-file-text"/></svg></div><div><h3>Complete JSON response</h3><p>Full results in JSON format.</p></div><button id="download" type="button" class="button-secondary">Download JSON</button></div>
+    <div class="flow-actions"><button type="button" class="button-secondary" id="back-to-results">Back to results</button><button type="button" class="flow-primary" id="export-new-analysis">Start another comparison <svg class="icon sm"><use href="#i-arrow-right"/></svg></button></div>
+    </div>
+  </section>
+
+  <section class="method" id="how-it-works" aria-labelledby="method-title">
+    <div class="section-topline">The process</div><h2 id="method-title">A clearer view, in three steps.</h2><p class="method-lead">OmniLens brings scattered reporting into one focused workspace, without losing sight of the original sources.</p>
+    <div class="method-grid">
+      <article class="method-card"><div class="step-top"><span class="step-icon"><svg class="icon lg"><use href="#i-link"/></svg></span><span class="step-n">01 / 03</span></div><h3>Start with a story</h3><p>Paste a link to the news article you want to explore.</p></article>
+      <article class="method-card"><div class="step-top"><span class="step-icon"><svg class="icon lg"><use href="#i-layers"/></svg></span><span class="step-n">02 / 03</span></div><h3>Connect the coverage</h3><p>We find related reporting across different publications covering the same event.</p></article>
+      <article class="method-card"><div class="step-top"><span class="step-icon"><svg class="icon lg"><use href="#i-spark"/></svg></span><span class="step-n">03 / 03</span></div><h3>Read between the lines</h3><p>Open the article cards to inspect Shared, New, and Conflicting claims, their supporting evidence and reasoning.</p></article>
+    </div>
+  </section>
+  <footer class="footer"><div class="footer-inner"><a class="brand" href="#top"><span class="brand-mark"><svg class="icon"><use href="#i-eye"/></svg></span>OmniLens</a><span>See the whole story.</span></div></footer>
+  <div id="toast" class="toast" role="status" aria-live="polite">Copied to clipboard</div>
+
   <script>
-    let analysisData = null;
+    "use strict";
+    const $ = id => document.getElementById(id);
+    const state = { data: null, active: null, filter: "ALL", query: "", visible: 10, requestInFlight: false, demo: false };
+    const LABELS = ["NEW", "CONFLICTING", "SHARED"];
+    const LABEL_NAMES = { NEW: "New", CONFLICTING: "Conflicting", SHARED: "Shared", NONE: "Not labeled" };
+    const PAGE_SIZE = 10;
+    let statusInterval = null, toastTimeout = null;
 
-    const form = document.getElementById("form");
-    const status = document.getElementById("status");
-    const results = document.getElementById("results");
-    const articles = document.getElementById("articles");
-    const button = document.getElementById("analyze");
+    function icon(name, cls="icon") {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("class", cls); svg.setAttribute("aria-hidden", "true");
+      const use = document.createElementNS("http://www.w3.org/2000/svg", "use"); use.setAttribute("href", "#i-"+name);
+      svg.append(use); return svg;
+    }
+    function el(tag, className, text) {
+      const out = document.createElement(tag); if (className) out.className=className;
+      if (text !== undefined && text !== null) out.textContent=String(text); return out;
+    }
+    function safeUrl(raw) { try { const x=new URL(raw); return ["http:","https:"].includes(x.protocol) ? x.href : null; } catch (_) { return null; } }
+    function domain(raw) { try { return new URL(raw).hostname.replace(/^www\./,""); } catch (_) { return "News source"; } }
+    function articleName(a) { return a.publisher || domain(a.url || ""); }
+    function articles() { return Array.isArray(state.data?.candidate_articles) ? state.data.candidate_articles : []; }
+    function claimsFor(a) { return Array.isArray(a?.claims) ? a.claims : []; }
+    function labelOf(c) { return LABELS.includes(c?.label) ? c.label : "NONE"; }
+    function countsFor(cs) { const obj={ NEW:0, CONFLICTING:0, SHARED:0, NONE:0 }; cs.forEach(c=>obj[labelOf(c)]++); return obj; }
+    function allClaims() { return articles().flatMap(a=>claimsFor(a)); }
+    function selectedArticle() { return state.active === null ? null : articles()[state.active] || null; }
+    function showToast(msg) { const n=$("toast"); n.textContent=msg; n.classList.add("show"); clearTimeout(toastTimeout); toastTimeout=setTimeout(()=>n.classList.remove("show"),2600); }
+    function showStatus(title,detail,isError=false) { $("status").classList.remove("hidden"); $("status").classList.toggle("error",isError); $("status-title").textContent=title; $("status-detail").textContent=detail; const use=$("status-icon").querySelector("use"); if (use) use.setAttribute("href",isError?"#i-circle":"#i-loader"); }
+    function hideStatus() { $("status").classList.add("hidden"); clearInterval(statusInterval); statusInterval=null; }
+    function startStatus() {
+      const messages=[
+        "Finding reporting related to your reference article…",
+        "Extracting claims from related coverage…",
+        "Comparing claims across sources…",
+        "Organizing your results…"
+      ]; let idx=0; showStatus("Comparing coverage",messages[0]); clearInterval(statusInterval);
+      statusInterval=setInterval(()=>{ idx=(idx+1)%messages.length; $("status-detail").textContent=messages[idx]; },10000);
+    }
+    function setBusy(flag) { state.requestInFlight=flag; $("analyze").disabled=flag; $("url").readOnly=flag; $("analyze").replaceChildren(document.createTextNode(flag?"Finding… ":"Find my story "),icon(flag?"loader":"arrow-right")); if(flag) $("analyze").querySelector("svg").classList.add("spin"); }
 
-    const LABELS = ["SHARED", "NEW", "CONFLICTING"];
-    const LABEL_TEXT = {
-      SHARED: "Shared with reference",
-      NEW: "New (not in reference)",
-      CONFLICTING: "Conflicting with reference"
-    };
-    let activeFilter = "ALL";
-
-    function element(tag, text, className = "") {
-      const node = document.createElement(tag);
-      node.textContent = text ?? "";
-      if (className) node.className = className;
-      return node;
+    function renderSummary() {
+      const data=state.data, ref=data.reference_article||{}, aa=articles();
+      $("reference-title").textContent=ref.title || "Untitled reference article";
+      const meta=$("reference-meta"); meta.replaceChildren(el("span","",articleName(ref)));
+      if(ref.published_at){const d=new Date(ref.published_at);if(!isNaN(d)) meta.append(el("span","dot"),el("span","",d.toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"})));}
+      const refURL=safeUrl(ref.url); $("reference-open").classList.toggle("hidden",!refURL); if(refURL) $("reference-open").href=refURL;
+      $("stat-articles").textContent=String(data.summary?.articles_found??aa.length);
+      $("stat-claims").textContent=String(data.summary?.total_claims??allClaims().length);
+      $("stat-processed").textContent=`${data.summary?.labeled_claims??allClaims().filter(c=>labelOf(c)!=="NONE").length} labeled`;
+      const overall=countsFor(allClaims()), panel=$("label-overview"); panel.replaceChildren();
+      for(const name of ["NEW","CONFLICTING","SHARED"]){
+        const card=el("div","overview-card "+name.toLowerCase());
+        const description=el("div",""); description.append(el("div","overview-count",overall[name]),el("div","overview-label",name=== "NEW" ? "New to the reference" : name=== "SHARED" ? "Shared with reference" : "Conflicting with reference"));
+        card.append(el("span","overview-dot"),description); panel.append(card);
+      }
     }
 
-    function countLabels(claims) {
-      const counts = { SHARED: 0, NEW: 0, CONFLICTING: 0, NONE: 0 };
-      claims.forEach((claim) => {
-        counts[LABELS.includes(claim.label) ? claim.label : "NONE"] += 1;
+    function setArticle(index) {
+      state.active=index; state.filter="ALL"; state.visible=PAGE_SIZE; state.query="";
+      $("claim-search").value=""; renderSources(); renderClaims();
+      if(window.innerWidth<761) $("claims-panel").scrollIntoView({behavior:"smooth",block:"start"});
+    }
+    function renderSources() {
+      const panel=$("source-list"); panel.replaceChildren();
+      $("view-all").classList.toggle("active", state.active===null);
+      $("view-all").setAttribute("aria-pressed",String(state.active===null));
+      const aa=articles();
+      if(!aa.length){panel.append(el("div","source-empty","No related articles were returned."));return;}
+      aa.forEach((article,idx)=>{
+        const counts=countsFor(claimsFor(article)), active=state.active===idx;
+        const b=el("button","source-option"+(active?" active":"")); b.type="button"; b.setAttribute("aria-pressed",String(active));
+        b.setAttribute("aria-label",`Show claims for ${article.title||articleName(article)}`);
+        const top=el("div","source-card-top");
+        const left=el("div","source-card-top"); left.append(el("span","source-symbol",String(idx+1).padStart(2,"0")),el("span","source-name",articleName(article)));
+        top.append(left,el("span","article-count",`${claimsFor(article).length} claims`));
+        const title=el("div","source-headline",article.title||"Untitled article");
+        const chips=el("div","source-labels");
+        for(const label of LABELS){chips.append(el("span","label-chip "+label.toLowerCase(),`${LABEL_NAMES[label]} ${counts[label]}`));}
+        if(counts.NONE) chips.append(el("span","label-chip unlabeled",`Unlabeled ${counts.NONE}`));
+        b.append(top,title,chips); b.addEventListener("click",()=>setArticle(idx)); panel.append(b);
       });
-      return counts;
     }
 
-    // One labeled claim: badge, confidence, text, then the evidence
-    function renderClaim(claim) {
-      const row = element("div", "", "claim");
-      const label = LABELS.includes(claim.label) ? claim.label : "NONE";
-      row.dataset.label = label;
-
-      row.appendChild(element(
-        "span",
-        label === "NONE" ? "Not labeled" : LABEL_TEXT[label],
-        "badge label-" + label
-      ));
-      if (claim.confidence) {
-        row.appendChild(element("span", claim.confidence + " confidence", "muted"));
-      }
-      row.appendChild(element("div", claim.claim_id + " — " + claim.text));
-
-      if (claim.reference_evidence) {
-        const evidence = element("p", "", "claim-detail");
-        evidence.append(element("b", "Reference says: "), claim.reference_evidence);
-        row.appendChild(evidence);
-      }
-      if (claim.explanation) {
-        const why = element("p", "", "claim-detail");
-        why.append(element("b", "Why: "), claim.explanation);
-        row.appendChild(why);
-      }
-      if (claim.annotation_error) {
-        row.appendChild(element("p", "Labeling failed: " + claim.annotation_error, "claim-detail"));
-      }
-      return row;
-    }
-
-    // Show only the claims of the selected label (or all)
-    function applyFilter() {
-      document.querySelectorAll(".claim").forEach((row) => {
-        row.classList.toggle(
-          "hidden",
-          activeFilter !== "ALL" && row.dataset.label !== activeFilter
-        );
-      });
-      document.querySelectorAll(".count").forEach((box) => {
-        box.classList.toggle("active", box.dataset.filter === activeFilter);
-      });
-    }
-
-    function renderCounts(allClaims) {
-      const counts = countLabels(allClaims);
-      const boxes = [
-        ["ALL", "All claims", allClaims.length],
-        ["SHARED", "Shared", counts.SHARED],
-        ["NEW", "New", counts.NEW],
-        ["CONFLICTING", "Conflicting", counts.CONFLICTING]
-      ];
-      if (counts.NONE) boxes.push(["NONE", "Not labeled", counts.NONE]);
-
-      const container = document.getElementById("counts");
-      container.replaceChildren();
-      boxes.forEach(([filter, name, value]) => {
-        const box = element("button", "", "count");
-        box.type = "button";
-        box.dataset.filter = filter;
-        box.append(element("strong", String(value)), name);
-        box.addEventListener("click", () => {
-          activeFilter = filter;
-          applyFilter();
+    function filteredEntries() {
+      const source=selectedArticle(), list=[];
+      articles().forEach((a,ai)=>{
+        if(source&&a!==source)return;
+        claimsFor(a).forEach((claim,ci)=>{
+          if(typeof claim==='string')claim={text:claim};
+          if(!claim||!String(claim.text||"").trim())return;
+          const entry={...claim, claim_id:claim.claim_id||`A${String(ai+1).padStart(3,"0")}_C${String(ci+1).padStart(3,"0")}`, source:articleName(a), article_title:a.title||"", article_url:a.url||""};
+          if(state.filter!=="ALL"&&labelOf(entry)!==state.filter)return;
+          const q=state.query.trim().toLocaleLowerCase();
+          if(q&&![entry.text,entry.claim_id,entry.source,entry.article_title,entry.reference_evidence,entry.explanation].some(v=>String(v||"").toLocaleLowerCase().includes(q))) return;
+          list.push(entry);
         });
-        container.appendChild(box);
-      });
+      }); return list;
     }
-
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-
-      button.disabled = true;
-      results.classList.add("hidden");
-      status.textContent =
-        "Finding related articles, extracting claims and labeling them. This may take a few minutes.";
-
-      try {
-        const response = await fetch("/api/analyze", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            url: document.getElementById("url").value,
-            max_articles: 5
-          })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            typeof data.detail === "string"
-              ? data.detail
-              : "Analysis failed."
-          );
+    function renderTabs() {
+      const cs=selectedArticle()?claimsFor(selectedArticle()):allClaims(), counts=countsFor(cs), target=$("label-tabs"); target.replaceChildren();
+      const buttons=[["ALL","All claims",cs.length], ...LABELS.map(l=>[l,LABEL_NAMES[l],counts[l]])];
+      if(counts.NONE)buttons.push(["NONE","Not labeled",counts.NONE]);
+      for(const [label,title,n] of buttons){
+        const b=el("button","label-tab "+label.toLowerCase()+(state.filter===label?" active":"")); b.type="button";b.setAttribute("aria-pressed",String(state.filter===label));
+        b.append(document.createTextNode(title),el("small","",n)); b.addEventListener("click",()=>{state.filter=label;state.visible=PAGE_SIZE;renderClaims();}); target.append(b);
+      }
+    }
+    function renderClaim(entry) {
+      const label=labelOf(entry), row=el("article","claim-row "+label.toLowerCase());
+      const body=el("div","");
+      const meta=el("div","claim-meta-row"); meta.append(el("span","label-chip "+(label==="NONE"?"unlabeled":label.toLowerCase()),LABEL_NAMES[label]),el("span","claim-index",entry.claim_id));
+      if(entry.confidence) meta.append(el("span","claim-confidence",`${entry.confidence} confidence`));
+      body.append(meta,el("p","claim-text",entry.text));
+      if(state.active===null)body.append(el("div","claim-source",entry.source));
+      if(entry.reference_evidence || entry.explanation || entry.annotation_error){
+        const details=el("details","claim-details"); details.append(el("summary","",entry.annotation_error?"Classification details":"View reference evidence & reasoning"));
+        if(entry.reference_evidence){const section=el("div","detail-item");section.append(el("b","","Reference says"),el("p","",entry.reference_evidence));details.append(section);}
+        if(entry.explanation){const section=el("div","detail-item");section.append(el("b","","Why this label"),el("p","",entry.explanation));details.append(section);}
+        if(entry.annotation_error)details.append(el("p","status-failed","Classification failed for this claim."));
+        body.append(details);
+      }
+      const copy=el("button","copy-claim");copy.type="button";copy.title="Copy claim";copy.setAttribute("aria-label",`Copy ${entry.claim_id}`);copy.append(icon("copy","icon sm"));
+      copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(entry.text);showToast("Claim copied");}catch(_){showToast("Clipboard unavailable");}});
+      row.append(body,copy);return row;
+    }
+    function renderClaims(){
+      const a=selectedArticle(), cs=a?claimsFor(a):allClaims();
+      $("claims-heading").textContent=a?articleName(a):"All related articles";
+      $("claims-caption").textContent=a?(a.title||"Related article"):`${articles().length} sources · ${cs.length} extracted claims`;
+      const link=safeUrl(a?.url);$("source-visit").classList.toggle("hidden",!link);if(link)$("source-visit").href=link;
+      renderTabs();const filtered=filteredEntries(), visible=filtered.slice(0,state.visible);
+      $("claim-counter").textContent=`${filtered.length} found`;
+      const out=$("claim-list");out.replaceChildren();
+      if(!filtered.length){out.append(el("div","empty-result", state.query?"No matching claims. Try a different keyword.":"No claims in this category for the selected article."));}
+      else visible.forEach(c=>out.append(renderClaim(c)));
+      $("load-more-wrap").classList.toggle("hidden",filtered.length<=state.visible);
+      $("load-more").replaceChildren(document.createTextNode(`Show ${Math.min(PAGE_SIZE,Math.max(0,filtered.length-state.visible))} more claims `),icon("chevron","icon sm"));
+    }
+    function renderResults(data, demo=false){
+      state.data=data;state.demo=demo;state.active=articles().length?0:null;state.filter="ALL";state.query="";state.visible=PAGE_SIZE;$("claim-search").value="";
+      $("demo-banner").classList.toggle("hidden",!demo);
+      renderSummary();renderSources();renderClaims();
+      showStep("workspace");
+      setTimeout(()=>$("workspace").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"}),70);
+    }
+    // Multi-stage comparison. Discover and compare are separate backend calls.
+    const stages=["preparing","extracting","classifying","organizing"];
+    const wizard={discoveryId:null,reference:null,candidates:[],selected:new Set(),mode:"url",jobId:null};
+    const demoReference={title:"City announces new measures after major storm",publisher:"The City Ledger",url:"https://example.com/reference",published_at:"2026-11-18T10:00:00Z",excerpt:"Officials announced new plans after a severe storm interrupted power across the city. Repair crews expect full restoration by Saturday morning."};
+    const demoCandidates=[
+      {article_id:"A1",title:"Residents demand answers as repairs continue",publisher:"Regional Daily",published_at:"2026-11-18",url:"https://example.com/a1"},
+      {article_id:"A2",title:"Outside crews join the city-wide restoration effort",publisher:"Metro News",published_at:"2026-11-18",url:"https://example.com/a2"},
+      {article_id:"A3",title:"Officials dispute reports of Thursday restoration",publisher:"Civic Report",published_at:"2026-11-18",url:"https://example.com/a3"}
+    ];
+    const demoResults={status:"annotation_complete",reference_article:demoReference,candidate_articles:[
+      {...demoCandidates[0],claims:[{claim_id:"A001_C001",text:"40,000 homes lost electricity during Tuesday's storm.",label:"SHARED",confidence:"High",reference_evidence:"The storm knocked out power to 40,000 homes on Tuesday.",explanation:"Both sources report the same outage count."},{claim_id:"A001_C002",text:"The city ordered an independent engineering review.",label:"NEW",confidence:"High",explanation:"The reference does not mention an independent review."}]},
+      {...demoCandidates[1],claims:[{claim_id:"A002_C001",text:"Outside crews have arrived from two neighboring counties.",label:"NEW",confidence:"Medium",explanation:"The reference does not identify outside repair crews."},{claim_id:"A002_C002",text:"Officials warned service could remain down until Saturday.",label:"SHARED",confidence:"High",reference_evidence:"Full restoration is not expected before Saturday morning.",explanation:"The timelines agree."}]},
+      {...demoCandidates[2],claims:[{claim_id:"A003_C001",text:"Full electricity restoration is expected by Thursday evening.",label:"CONFLICTING",confidence:"Medium",reference_evidence:"Full restoration is not expected before Saturday morning.",explanation:"Thursday and Saturday are inconsistent timelines."},{claim_id:"A003_C002",text:"The storm affected several parts of the city.",label:"SHARED",confidence:"Medium",reference_evidence:"The storm knocked out power to 40,000 homes on Tuesday.",explanation:"Both describe the same storm-related power outages."}]}
+    ]};
+    const demoJobs={};
+    async function api(path,body=null){
+      if(state.demo){
+        await new Promise(r=>setTimeout(r,360));
+        if(path==="/api/reference")return {discovery_id:"demo-session",reference_article:{...demoReference,excerpt:body.reference_text?body.reference_text.slice(0,700):demoReference.excerpt}};
+        if(path==="/api/discover")return {discovery_id:"demo-session",reference_article:demoReference,candidate_articles:demoCandidates};
+        if(path==="/api/compare/start"){
+          const selected=new Set(body.article_ids);
+          const result={...demoResults,candidate_articles:demoResults.candidate_articles.filter(a=>selected.has(a.article_id))};
+          result.summary={articles_found:result.candidate_articles.length,total_claims:result.candidate_articles.reduce((n,a)=>n+a.claims.length,0),labeled_claims:result.candidate_articles.reduce((n,a)=>n+a.claims.length,0)};
+          const job_id="demo-job";demoJobs[job_id]={count:0,result};
+          return {job_id,status:"queued",stage:"queued",message:"Queued"};
         }
-
-        analysisData = data;
-
-        const summary = document.getElementById("summary");
-        summary.replaceChildren(
-          element("p", "Reference: " + data.reference_article.title),
-          element("p", "Related articles: " + data.summary.articles_found),
-          element("p", "Extracted claims: " + data.summary.total_claims)
-        );
-
-        const allClaims = data.candidate_articles.flatMap((a) => a.claims);
-        activeFilter = "ALL";
-        renderCounts(allClaims);
-
-        articles.replaceChildren();
-
-        data.candidate_articles.forEach((article) => {
-          const card = element("section", "", "card");
-          card.appendChild(element("h3", article.title));
-
-          const link = element("a", article.publisher || article.url);
-          link.href = article.url;
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          card.appendChild(link);
-
-          const c = countLabels(article.claims);
-          card.appendChild(element(
-            "p",
-            article.claim_count + " claims · " +
-              c.SHARED + " shared · " + c.NEW + " new · " +
-              c.CONFLICTING + " conflicting" +
-              (c.NONE ? " · " + c.NONE + " not labeled" : ""),
-            "muted article-counts"
-          ));
-
-          if (article.extraction_status !== "success") {
-            card.appendChild(
-              element("p", "Claim extraction failed.", "muted")
-            );
-          }
-
-          article.claims.forEach((claim) => {
-            card.appendChild(renderClaim(claim));
-          });
-
-          articles.appendChild(card);
-        });
-
-        applyFilter();
-
-        results.classList.remove("hidden");
-        status.textContent = "Analysis complete.";
-
-      } catch (error) {
-        status.textContent = "Error: " + error.message;
-      } finally {
-        button.disabled = false;
+        if(path.startsWith("/api/compare/status/")){
+          const j=demoJobs["demo-job"];j.count++;
+          if(j.count>=7)return {status:"completed",stage:"complete",message:"Done",result:j.result};
+          const stage=["preparing","extracting","extracting","classifying","classifying","organizing"][j.count-1];
+          return {status:"running",stage,message:stage==="classifying"?"Comparing claims":stage==="extracting"?"Extracting claims":"Preparing results",processed:0,total:1};
+        }
       }
+      const options=body===null?{}:{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)};
+      const response=await fetch(path,options);let result;
+      try{result=await response.json();}catch(_){throw new Error("Unable to load results. Please try again.");}
+      if(!response.ok)throw new Error(typeof result.detail==="string"?result.detail:"Unable to complete this request. Please try again.");
+      return result;
+    }
+    function showStep(id){
+      for(const step of ["step-confirm","step-pick","step-progress","workspace","step-export"]){$(step).classList.toggle("hidden",step!==id);}
+      $("nav-results").classList.toggle("hidden",id!=="workspace");
+      if(id){setTimeout(()=>$(id).scrollIntoView({behavior:"smooth",block:"start"}),55);}
+    }
+    function resetFlow(){wizard.discoveryId=null;wizard.reference=null;wizard.candidates=[];wizard.selected.clear();wizard.jobId=null;state.data=null;showStep(null);hideStatus();window.scrollTo({top:0,behavior:"smooth"});}
+    $("mode-url").addEventListener("click",()=>setMode("url"));
+    $("mode-text").addEventListener("click",()=>setMode("text"));
+    function setMode(mode){wizard.mode=mode;$("reference-text-wrap").classList.toggle("hidden",mode!=="text");for(const x of ["url","text"]){$("mode-"+x).classList.toggle("active",mode===x);$("mode-"+x).setAttribute("aria-pressed",String(mode===x));}}
+    $("form").addEventListener("submit",async e=>{
+      e.preventDefault();if(state.requestInFlight)return;
+      const url=$('url').value.trim();if(!safeUrl(url)){showStatus("Invalid link","Enter a valid public news URL.",true);return;}
+      const body={url};if(wizard.mode==="text"){
+        const pasted=$("reference-text").value.trim();
+        if(pasted.length<100){showStatus("Add article text","Paste at least 100 characters of article text, along with its source URL.",true);return;}
+        body.reference_text=pasted;
+      }
+      setBusy(true);showStep(null);showStatus("Finding your reference article","Finding the article…");
+      try{
+        const result=await api("/api/reference",body);
+        wizard.discoveryId=result.discovery_id;wizard.reference=result.reference_article;
+        $("confirm-title").textContent=wizard.reference.title||"Untitled article";
+        $("confirm-meta").textContent=[wizard.reference.publisher,wizard.reference.published_at?new Date(wizard.reference.published_at).toLocaleDateString():null].filter(Boolean).join(" · ");
+        $("confirm-excerpt").textContent=wizard.reference.excerpt||"No excerpt available.";
+        const link=safeUrl(wizard.reference.url);$("confirm-link").classList.toggle("hidden",!link);if(link)$("confirm-link").href=link;
+        hideStatus();showStep("step-confirm");
+      }catch(err){showStatus("Could not find the article",err.message,true);$("status").scrollIntoView({behavior:"smooth"});}
+      finally{setBusy(false);}
     });
-
-    document.getElementById("download").addEventListener(
-      "click",
-      () => {
-        if (!analysisData) return;
-
-        const blob = new Blob(
-          [JSON.stringify(analysisData, null, 2)],
-          { type: "application/json" }
-        );
-
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-
-        link.href = url;
-        link.download = "omnilens_claims.json";
-        link.click();
-
-        URL.revokeObjectURL(url);
+    $("change-reference").addEventListener("click",resetFlow);
+    $("confirm-reference").addEventListener("click",async()=>{
+      if(state.requestInFlight)return;state.requestInFlight=true;$("confirm-reference").disabled=true;
+      showStatus("Finding related coverage","Searching the same event for independent reporting…");
+      try{
+        const result=await api("/api/discover",{discovery_id:wizard.discoveryId,max_articles:5});
+        wizard.candidates=result.candidate_articles||[];
+        wizard.selected=new Set(wizard.candidates.map(a=>a.article_id));
+        $("pick-reference-title").textContent=wizard.reference.title||"Your reference";
+        $("pick-reference-source").textContent=wizard.reference.publisher||"Reference source";
+        renderPicker();hideStatus();showStep("step-pick");
+      }catch(err){showStatus("Could not find related articles",err.message,true);$("status").scrollIntoView({behavior:"smooth"});}
+      finally{state.requestInFlight=false;$("confirm-reference").disabled=false;}
+    });
+    function updatePicker(){const n=wizard.selected.size;$("picker-count").textContent=`${n} of ${wizard.candidates.length} articles selected`;$("compare-selected").disabled=n===0;$("compare-selected").textContent=`Compare ${n} selected article${n===1?"":"s"} `;$("compare-selected").append(icon("arrow-right","icon sm"));}
+    function renderPicker(){
+      const panel=$("picker-list");panel.replaceChildren();
+      wizard.candidates.forEach((a,i)=>{
+        const card=el("label","picker-card"+(wizard.selected.has(a.article_id)?" selected":""));
+        const head=el("div","picker-card-head"),title=el("h3","",a.title||"Untitled article"),foot=el("div","picker-card-footer");
+        const check=document.createElement("input");check.type="checkbox";check.checked=wizard.selected.has(a.article_id);check.setAttribute("aria-label","Include " +(a.title||"article"));
+        check.addEventListener("change",()=>{if(check.checked)wizard.selected.add(a.article_id);else wizard.selected.delete(a.article_id);card.classList.toggle("selected",check.checked);updatePicker();});
+        head.append(el("strong","",a.publisher||domain(a.url)),check);
+        const date=a.published_at?new Date(a.published_at):null;
+        foot.append(el("span","",date&&!isNaN(date)?date.toLocaleDateString():"Related coverage"));
+        const url=safeUrl(a.url);if(url){const link=el("a","","Read original ↗");link.href=url;link.target="_blank";link.rel="noopener noreferrer";link.addEventListener("click",e=>e.stopPropagation());foot.append(link);}
+        card.append(head,title,foot);panel.append(card);
+      });updatePicker();
+    }
+    $("select-all").addEventListener("click",()=>{wizard.selected=new Set(wizard.candidates.map(a=>a.article_id));renderPicker();});
+    $("clear-all").addEventListener("click",()=>{wizard.selected.clear();renderPicker();});
+    $("back-to-confirm").addEventListener("click",()=>showStep("step-confirm"));
+    $("back-to-picker").addEventListener("click",()=>showStep("step-pick"));
+    $("open-export").addEventListener("click",()=>showStep("step-export"));
+    $("back-to-results").addEventListener("click",()=>showStep("workspace"));
+    $("export-new-analysis").addEventListener("click",()=>{$("url").value="";$("reference-text").value="";resetFlow();$("url").focus();});
+    function updateProgress(data){
+      const stage=data.stage||"preparing",index=stages.indexOf(stage),ix=Math.max(index,0);
+      $("progress-current").textContent=data.message||"Working on the comparison…";
+      $("progress-detail").textContent=(data.total&&data.processed!==undefined)?`${data.processed} of ${data.total} processed`:(stage==="classifying"?"Comparing the selected articles.":"Working with your selected sources.");
+      const base=[10,26,59,90][ix];$("progress-fill").style.width=`${base}%`;
+      for(const li of $("progress-stages").children){const at=stages.indexOf(li.dataset.stage);li.classList.toggle("current",at===ix);li.classList.toggle("done",at<ix);}
+    }
+    function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+    async function pollJob(id){
+      while(wizard.jobId===id){
+        const job=await api("/api/compare/status/"+encodeURIComponent(id));
+        if(job.status==="completed"){hideStatus();$("progress-fill").style.width="100%";renderResults(job.result,state.demo);return;}
+        if(job.status==="failed")throw new Error(job.error||"The comparison failed.");
+        updateProgress(job);await sleep(state.demo?500:1350);
       }
-    );
+    }
+    $("compare-selected").addEventListener("click",async()=>{
+      if(!wizard.selected.size||state.requestInFlight)return;
+      state.requestInFlight=true;$("compare-selected").disabled=true;
+      showStep("step-progress");updateProgress({stage:"preparing",message:"Starting the comparison…"});
+      try{
+        const job=await api("/api/compare/start",{discovery_id:wizard.discoveryId,article_ids:[...wizard.selected]});
+        wizard.jobId=job.job_id;
+        if(job.status==="completed"){renderResults(job.result,state.demo);}else await pollJob(job.job_id);
+      }catch(err){showStatus("Comparison could not finish",err.message,true);$("status").scrollIntoView({behavior:"smooth"});}
+      finally{state.requestInFlight=false;updatePicker();}
+    });
+    $("claim-search").addEventListener("input",e=>{state.query=e.target.value||"";state.visible=PAGE_SIZE;renderClaims();});
+    $("load-more").addEventListener("click",()=>{state.visible+=PAGE_SIZE;renderClaims();});
+    $("new-search").addEventListener("click",()=>{$("url").value="";$("reference-text").value="";resetFlow();$("url").focus();});
+    $("view-all").addEventListener("click",()=>setArticle(null));
+    function downloadBlob(content,mime,filename){const blob=new Blob([content],{type:mime});const href=URL.createObjectURL(blob);const a=document.createElement("a");a.href=href;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(href),1200);}
+    $("download").addEventListener("click",()=>{if(!state.data)return;downloadBlob(JSON.stringify(state.data,null,2),"application/json","omnilens_analysis"+(state.demo?"_demo":"")+".json");showToast("JSON exported");});
+    function csvValue(value){let s=String(value??"");if(/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
+    function exportCSV(priorityOnly=false){
+      if(!state.data)return;
+      const header=["article_id","publisher","article_title","claim_id","claim","label","confidence","reference_evidence","explanation","annotation_error","article_url"];
+      const rows=[header];articles().forEach((a,ai)=>claimsFor(a).forEach((c,ci)=>{
+        if(typeof c==="string")c={text:c};
+        if(priorityOnly && !["NEW","CONFLICTING"].includes(c.label))return;
+        rows.push([a.article_id||`article_${ai+1}`,articleName(a),a.title||"",c.claim_id||`${ai+1}_${ci+1}`,c.text||"",c.label||"",c.confidence||"",c.reference_evidence||"",c.explanation||"",c.annotation_error||"",a.url||""]);
+      }));
+      const filename=priorityOnly?"omnilens_new_conflicting.csv":"omnilens_all_claims.csv";
+      downloadBlob("\ufeff"+rows.map(r=>r.map(csvValue).join(",")).join("\r\n"),"text/csv;charset=utf-8",filename);showToast("CSV exported");
+    }
+    $("download-csv").addEventListener("click",()=>exportCSV(false));
+    $("download-priority").addEventListener("click",()=>exportCSV(true));
+    // Standalone guided demo uses in-memory fictional examples, never real classification.
+    if(new URLSearchParams(location.search).get("demo")==="1"){
+      state.demo=true;
+      $("url").value=demoReference.url;
+      $("demo-banner").textContent="DESIGN PREVIEW · Fictional article and claims. No backend requests are made.";
+      $("analyze").textContent="Try the interactive walkthrough ";
+      $("analyze").append(icon("arrow-right"));
+    }
   </script>
 </body>
 </html>

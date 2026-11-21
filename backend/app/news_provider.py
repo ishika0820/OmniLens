@@ -54,140 +54,83 @@ def is_duplicate_article(
 
     return False
 
-def get_related_articles(reference_url: str, max_articles: int = 5):
-    """
-    Retrieve the reference article and related articles
-    from the same Event Registry event cluster.
-    """
-
+def _event_registry():
     api_key = os.getenv("EVENTREGISTRY_API_KEY")
-
     if not api_key:
-        raise RuntimeError(
-            "EVENTREGISTRY_API_KEY missing from .env"
-        )
+        raise RuntimeError("EVENTREGISTRY_API_KEY missing from .env")
+    return EventRegistry(apiKey=api_key, allowUseOfArchive=False)
 
-    er = EventRegistry(
-        apiKey=api_key,
-        allowUseOfArchive=False
-    )
 
-    # Find reference article
+def get_reference_article(reference_url: str):
+    """Resolve the starting story without processing any candidate articles."""
+    er = _event_registry()
     mapper = ArticleMapper(er)
     article_uri = mapper.getArticleUri(reference_url)
-
     if not article_uri:
-        raise ValueError(
-            "Reference article not found in Event Registry."
-        )
-
+        raise ValueError("Reference article not found in Event Registry.")
     if isinstance(article_uri, list):
         article_uri = article_uri[0]
 
-    # Retrieve reference article information
     query = QueryArticle(article_uri)
-
-    query.setRequestedResult(
-        RequestArticleInfo(
-            returnInfo=ReturnInfo(
-                articleInfo=ArticleInfoFlags(bodyLen=-1)
-            )
-        )
-    )
-
+    query.setRequestedResult(RequestArticleInfo(
+        returnInfo=ReturnInfo(articleInfo=ArticleInfoFlags(bodyLen=-1))
+    ))
     result = er.execQuery(query)
-
-    reference_info = result.get(
-        article_uri, {}
-    ).get("info", {})
-
-    event_id = reference_info.get("eventUri")
-
+    info = result.get(article_uri, {}).get("info", {})
+    event_id = info.get("eventUri")
     if not event_id:
-        raise ValueError(
-            "No event cluster found for this article."
-        )
+        raise ValueError("No event cluster found for this article.")
+    reference = {
+        "article_id": str(article_uri),
+        "url": reference_url,
+        "title": info.get("title"),
+        "publisher": (info.get("source") or {}).get("title"),
+        "published_at": info.get("dateTime"),
+        "text": info.get("body") or ""
+    }
+    if not reference["text"].strip():
+        raise ValueError("Reference article has no usable text.")
+    return {"event_id": event_id, "reference_article": reference}
 
-    # Retrieve related English-language articles
-    event_query = QueryEventArticlesIter(
-        event_id,
-        lang="eng"
+
+def get_candidates_for_reference(reference_data, max_articles: int = 5):
+    """Fetch event matches only after the user confirms the reference."""
+    er = _event_registry()
+    event_query = QueryEventArticlesIter(reference_data["event_id"], lang="eng")
+    related = event_query.execQuery(
+        er, sortBy="cosSim", maxItems=30,
+        returnInfo=ReturnInfo(articleInfo=ArticleInfoFlags(bodyLen=-1))
     )
-
-    related = list(
-        event_query.execQuery(
-            er,
-            sortBy="cosSim",
-            maxItems=30,
-            returnInfo=ReturnInfo(
-                articleInfo=ArticleInfoFlags(bodyLen=-1)
-            )
-        )
-    )
-
-    reference_domain = urlparse(reference_url).netloc
-
-    selected = []
-    seen_domains = set()
-
+    reference = reference_data["reference_article"]
+    reference_domain = urlparse(reference["url"]).netloc.lower()
+    selected, seen_domains = [], set()
     for article in related:
-
-        url = article.get("url")
-        text = article.get("body") or ""
-
+        url, text = article.get("url"), article.get("body") or ""
         if not url or len(text.strip()) < 500:
             continue
-
-        if (
-            article.get("uri") == article_uri
-            or url.rstrip("/") == reference_url.rstrip("/")
-        ):
+        if (str(article.get("uri")) == reference["article_id"]
+                or url.rstrip("/") == reference["url"].rstrip("/")):
             continue
-
         domain = urlparse(url).netloc.lower()
-
-        if domain == reference_domain:
+        if domain == reference_domain or domain in seen_domains:
             continue
-
-        if domain in seen_domains:
-            continue
-
         if is_duplicate_article(text, selected):
-            print(
-                f"Skipping near-duplicate article: "
-                f"{article.get('title')}"
-            )
             continue
-
         seen_domains.add(domain)
-
         selected.append({
             "article_id": str(article.get("uri")),
             "url": url,
             "title": article.get("title"),
-            "publisher": (
-                article.get("source") or {}
-            ).get("title"),
+            "publisher": (article.get("source") or {}).get("title"),
             "published_at": article.get("dateTime"),
-            "text": text
+            "text": text,
         })
-
         if len(selected) >= max_articles:
             break
+    return {**reference_data, "candidate_articles": selected}
 
-    reference = {
-        "article_id": str(article_uri),
-        "url": reference_url,
-        "title": reference_info.get("title"),
-        "publisher": (
-            reference_info.get("source") or {}
-        ).get("title"),
-        "published_at": reference_info.get("dateTime"),
-        "text": reference_info.get("body") or ""
-    }
 
-    return {
-        "event_id": event_id,
-        "reference_article": reference,
-        "candidate_articles": selected
-    }
+def get_related_articles(reference_url: str, max_articles: int = 5):
+    """Legacy single-step API remains compatible with existing clients."""
+    ref = get_reference_article(reference_url)
+    return get_candidates_for_reference(ref, max_articles)
